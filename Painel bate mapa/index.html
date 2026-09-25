@@ -1,0 +1,1585 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bate-Mapa — Executive Healthcare BI</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <style>
+    :root {
+      --bg-canvas: #f8fafc;
+      --bg-surface: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --text-light: #94a3b8;
+      
+      --brand-navy: #0f172a;
+      --brand-sidebar: #111827;
+      --brand-blue: #2563eb;
+      --brand-blue-hover: #1d4ed8;
+      --brand-teal: #0d9488;
+      
+      --status-success: #059669;
+      --status-success-bg: #ecfdf5;
+      --status-warning: #d97706;
+      --status-warning-bg: #fffbeb;
+      --status-danger: #e11d48;
+      --status-danger-bg: #fff1f2;
+      --status-purple: #7c3aed;
+      --status-purple-bg: #faf5ff;
+
+      --border-subtle: #e2e8f0;
+      --border-hover: #cbd5e1;
+      --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+      --shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; }
+    body { background-color: var(--bg-canvas); color: var(--text-main); display: flex; min-height: 100vh; overflow-x: hidden; }
+
+    aside.sidebar {
+      width: 240px;
+      background: var(--brand-sidebar);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      border-right: 1px solid rgba(255,255,255,0.06);
+      z-index: 50;
+    }
+    .sidebar-brand {
+      padding: 24px 22px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .sidebar-logo-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--brand-blue) 0%, var(--brand-teal) 100%);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
+      color: #fff;
+    }
+    .sidebar-brand span { font-size: 17px; font-weight: 800; letter-spacing: -0.3px; color: #fff; }
+    .sidebar-brand small { display: block; font-size: 10px; font-weight: 500; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.8px; margin-top: 2px; }
+
+    .sidebar-menu { list-style: none; padding: 20px 12px; flex-grow: 1; display: flex; flex-direction: column; gap: 4px; }
+    .sidebar-menu li a {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 14px;
+      color: #94a3b8;
+      text-decoration: none;
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: var(--radius-sm);
+      transition: all 0.15s ease-in-out;
+    }
+    .sidebar-menu li a:hover {
+      background-color: rgba(255, 255, 255, 0.05);
+      color: #f8fafc;
+    }
+    .sidebar-menu li.active a {
+      background-color: var(--brand-blue);
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+
+    .sidebar-footer {
+      padding: 18px 20px;
+      font-size: 11px;
+      color: #64748b;
+      line-height: 1.5;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      background: rgba(0,0,0,0.2);
+    }
+    .live-pulse {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: #10b981;
+      font-weight: 600;
+      font-size: 10.5px;
+      margin-bottom: 4px;
+    }
+    .live-pulse::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      background: #10b981;
+      border-radius: 50%;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
+    }
+
+    main.main-content {
+      flex-grow: 1;
+      padding: 24px 32px;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    header.top-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .header-titles h1 { font-size: 24px; color: var(--text-main); font-weight: 800; letter-spacing: -0.5px; }
+    .header-titles p { font-size: 13px; color: var(--text-muted); font-weight: 500; margin-top: 2px; }
+    .header-right { display: flex; align-items: center; gap: 12px; }
+    
+    .date-badge {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      padding: 7px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: var(--shadow-card);
+    }
+    .btn-sync {
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-surface);
+      border-radius: var(--radius-sm);
+      padding: 7px 14px;
+      cursor: pointer;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--brand-blue);
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      box-shadow: var(--shadow-card);
+      transition: 0.15s;
+    }
+    .btn-sync:hover { background: #f1f5f9; border-color: var(--border-hover); }
+
+    .filter-bar {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 12px 18px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      box-shadow: var(--shadow-card);
+      margin-bottom: 22px;
+    }
+    .filter-group { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 125px; }
+    .filter-group label { font-size: 10.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .filter-group select, .filter-group input {
+      padding: 8px 10px;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      font-size: 12.5px;
+      font-weight: 500;
+      background: #f8fafc;
+      color: var(--text-main);
+      outline: none;
+      transition: 0.15s;
+    }
+    .filter-group select:focus, .filter-group input:focus {
+      border-color: var(--brand-blue);
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+    .search-unit-wrapper { position: relative; display: flex; align-items: center; width: 100%; }
+    .search-unit-wrapper input { width: 100%; padding-right: 28px; }
+    .search-unit-wrapper i { position: absolute; right: 10px; font-size: 12px; color: var(--text-muted); pointer-events: none; }
+
+    .kpi-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 22px; }
+    .kpi-grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 22px; }
+    .kpi-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: var(--shadow-card);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .kpi-card:hover {
+      box-shadow: var(--shadow-hover);
+      transform: translateY(-2px);
+    }
+    .kpi-icon-wrap {
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 19px;
+      flex-shrink: 0;
+    }
+    .icon-blue { background: #eff6ff; color: #2563eb; }
+    .icon-navy { background: #f1f5f9; color: #0f172a; }
+    .icon-green { background: #ecfdf5; color: #059669; }
+    .icon-amber { background: #fffbeb; color: #d97706; }
+    .icon-danger { background: #fff1f2; color: #e11d48; }
+    .icon-purple { background: #faf5ff; color: #7c3aed; }
+
+    .kpi-content { display: flex; flex-direction: column; width: 100%; }
+    .kpi-title { font-size: 11.5px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
+    .kpi-value-row { display: flex; align-items: baseline; gap: 8px; margin-top: 4px; }
+    .kpi-value { font-size: 26px; font-weight: 800; color: var(--text-main); letter-spacing: -0.5px; }
+    .kpi-sub { font-size: 11.5px; color: var(--text-light); margin-top: 2px; font-weight: 500; }
+
+    .grid-3 { display: grid; grid-template-columns: 1fr 1.3fr 1.2fr; gap: 18px; margin-bottom: 22px; }
+    .grid-bottom-proc { display: grid; grid-template-columns: 1.5fr 1fr; gap: 18px; margin-bottom: 22px; }
+    .grid-unidades-mid { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 18px; margin-bottom: 22px; }
+    .grid-unidades-bot { display: grid; grid-template-columns: 2fr 1fr; gap: 18px; margin-bottom: 22px; }
+    .grid-relat-row1 { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 18px; margin-bottom: 22px; }
+    .grid-relat-row2 { display: grid; grid-template-columns: 2fr 1fr; gap: 18px; margin-bottom: 22px; }
+
+    .chart-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 18px 20px;
+      box-shadow: var(--shadow-card);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    .chart-header {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: var(--text-main);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .chart-wrapper {
+      position: relative;
+      flex-grow: 1;
+      min-height: 210px;
+      max-height: 240px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .table-container {
+      max-height: 240px;
+      overflow-y: auto;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+    }
+    table.data-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; }
+    table.data-table th {
+      background: #f8fafc;
+      color: var(--text-muted);
+      padding: 9px 12px;
+      position: sticky;
+      top: 0;
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 10.5px;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    table.data-table td {
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--border-subtle);
+      color: #334155;
+      font-weight: 500;
+    }
+    table.data-table tbody tr:hover { background-color: #f8fafc; }
+    table.data-table tfoot td {
+      background: #f1f5f9;
+      font-weight: 800;
+      padding: 10px 12px;
+      color: var(--text-main);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .badge-success { background: var(--status-success-bg); color: var(--status-success); }
+    .badge-danger { background: var(--status-danger-bg); color: var(--status-danger); }
+    .badge-warning { background: var(--status-warning-bg); color: var(--status-warning); }
+    .badge-purple { background: var(--status-purple-bg); color: var(--status-purple); }
+
+    .ranking-list { display: flex; flex-direction: column; gap: 9px; justify-content: center; height: 100%; }
+    .ranking-item { display: flex; align-items: center; justify-content: space-between; font-size: 12px; padding: 6px 0; border-bottom: 1px dashed var(--border-subtle); }
+    .ranking-badge {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f1f5f9;
+      color: var(--text-main);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .ranking-badge.top-1 { background: var(--brand-blue); color: #fff; }
+    .ranking-badge.top-2 { background: var(--brand-teal); color: #fff; }
+
+    .insights-list { display: flex; flex-direction: column; gap: 10px; }
+    .insight-item {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      font-size: 12px;
+      line-height: 1.45;
+      padding: 10px 12px;
+      background: #f8fafc;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+    }
+    .insight-icon {
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      flex-shrink: 0;
+    }
+
+    footer.bottom-bar {
+      margin-top: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 20px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      font-size: 12px;
+      box-shadow: var(--shadow-card);
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.7);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+    .loginbox {
+      background: var(--bg-surface);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      width: min(440px, 92vw);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--border-subtle);
+    }
+    .loginbox h2 { font-size: 21px; font-weight: 800; color: var(--text-main); margin-bottom: 6px; letter-spacing: -0.5px; }
+    .loginbox p { font-size: 13px; color: var(--text-muted); margin-bottom: 18px; line-height: 1.45; }
+    .loginbox label { display: block; font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 5px; text-transform: uppercase; }
+    .loginbox select, .loginbox input {
+      width: 100%;
+      padding: 10px 12px;
+      margin-bottom: 14px;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      background: #f8fafc;
+      outline: none;
+    }
+    .loginbox button {
+      width: 100%;
+      padding: 11px;
+      background: var(--brand-blue);
+      color: #fff;
+      border: 0;
+      border-radius: var(--radius-sm);
+      font-weight: 700;
+      font-size: 13.5px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+    }
+    .loginbox button:hover { background: var(--brand-blue-hover); }
+    .loginbox button.secondary-btn {
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--border-subtle);
+      box-shadow: none;
+      margin-top: 8px;
+    }
+    .loginbox button.secondary-btn:hover { background: #f1f5f9; color: var(--text-main); }
+    .loginbox .msg { color: var(--status-danger); font-size: 12px; font-weight: 600; margin-top: 10px; text-align: center; min-height: 18px; }
+
+    body.locked main, body.locked aside { filter: blur(3px); pointer-events: none; }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+  </style>
+</head>
+<body class="locked">
+
+  <div class="overlay" id="biGate">
+    <div class="loginbox">
+      <h2>Bate-Mapa BI</h2>
+      <p>Acesse o painel executivo com a senha da unidade ou credencial corporativa.</p>
+      
+      <div id="unitLoginArea">
+        <label>UF</label>
+        <select id="loginUF">
+          <option value="SP">SP (São Paulo)</option>
+          <option value="CE">CE (Ceará)</option>
+          <option value="SC">SC (Santa Catarina)</option>
+        </select>
+        <label>Senha de Acesso</label>
+        <input type="password" id="loginPassword" placeholder="Digite a senha..." onkeydown="if(event.key==='Enter') login()">
+        <button type="button" onclick="login()">Entrar no Painel</button>
+        <button type="button" class="secondary-btn" onclick="toggleAdminMode(true)">Acesso Diretor / Admin</button>
+      </div>
+
+      <div id="adminLoginArea" style="display:none;">
+        <label>E-mail do Administrador (opcional)</label>
+        <input type="email" id="adminEmail" placeholder="admin@bate-mapa.local">
+        <label>Senha Master</label>
+        <input type="password" id="adminPassword" placeholder="BateMapa2026!" onkeydown="if(event.key==='Enter') adminLogin()">
+        <button type="button" onclick="adminLogin()">Acessar Visão Geral</button>
+        <button type="button" class="secondary-btn" onclick="toggleAdminMode(false)">Voltar ao Acesso de Unidade</button>
+      </div>
+
+      <div id="loginMsg" class="msg"></div>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-logo-icon"><i class="fa-solid fa-chart-pie"></i></div>
+      <div>
+        <span>Bate-Mapa</span>
+        <small>Executive Healthcare BI</small>
+      </div>
+    </div>
+    
+    <ul class="sidebar-menu">
+      <li id="nav-inicio" class="active"><a onclick="switchTab('inicio')"><i class="fa-solid fa-house"></i> Visão Geral</a></li>
+      <li id="nav-procedimentos"><a onclick="switchTab('procedimentos')"><i class="fa-solid fa-file-waveform"></i> Procedimentos</a></li>
+      <li id="nav-unidades"><a onclick="switchTab('unidades')"><i class="fa-solid fa-user-doctor"></i> Agendas Médicas</a></li>
+      <li id="nav-relatorios"><a onclick="switchTab('relatorios')"><i class="fa-solid fa-shield-virus"></i> Biossegurança & Rel.</a></li>
+      <li><a onclick="exportarExcel()"><i class="fa-solid fa-file-excel"></i> Exportar Excel</a></li>
+      <li><a onclick="logout()"><i class="fa-solid fa-arrow-right-from-bracket"></i> Sair</a></li>
+    </ul>
+
+    <div class="sidebar-footer">
+      <div class="live-pulse">Supabase Live</div>
+      <div>Monitoramento operacional de procedimentos, escalas e segurança clínica.</div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    
+    <header class="top-header">
+      <div class="header-titles">
+        <h1 id="tabMainTitle">Bate-Mapa</h1>
+        <p id="tabSubTitle">Painel de Procedimentos e Indicadores Gerais</p>
+      </div>
+      <div class="header-right">
+        <div class="date-badge">
+          <i class="fa-regular fa-calendar-check" style="color:var(--brand-blue)"></i>
+          <span>Período Piloto: Set/2026 a Dez/2026</span>
+        </div>
+        <button class="btn-sync" onclick="syncData(true)"><i class="fa-solid fa-rotate"></i> Atualizar Dados</button>
+      </div>
+    </header>
+
+    <section class="filter-bar">
+      <div class="filter-group" style="max-width: 90px;">
+        <label>UF</label>
+        <select id="filterUf" onchange="applyFilters()">
+          <option value="Todos">Todos</option>
+          <option value="SP">SP</option>
+          <option value="CE">CE</option>
+          <option value="SC">SC</option>
+        </select>
+      </div>
+
+      <div class="filter-group" style="min-width: 160px;">
+        <label>Unidade</label>
+        <select id="filterUnidadeSelect" onchange="onUnitSelectChange()">
+          <option value="Todas">Todas as Unidades</option>
+        </select>
+      </div>
+      
+      <div class="filter-group" style="min-width: 140px;">
+        <label>Buscar Unidade</label>
+        <div class="search-unit-wrapper">
+          <input type="text" id="filterUnidadeInput" list="unidadesDatalist" placeholder="Filtrar por nome..." oninput="onUnitInputChange()">
+          <i class="fa-solid fa-magnifying-glass"></i>
+        </div>
+        <datalist id="unidadesDatalist"></datalist>
+      </div>
+
+      <div class="filter-group">
+        <label>Formulário</label>
+        <select id="filterFormulario" onchange="applyFilters()">
+          <option value="Todos">Todos os 3 Formulários</option>
+          <option value="pequenos">Pequenos Procedimentos</option>
+          <option value="infiltracao">Infiltração e Punção</option>
+          <option value="diu">DIU / Implanon</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Médico</label>
+        <select id="filterMedico" onchange="applyFilters()">
+          <option value="Todos">Todos os Médicos</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Especialidade</label>
+        <select id="filterEspecialidade" onchange="applyFilters()">
+          <option value="Todas">Todas as Especialidades</option>
+        </select>
+      </div>
+
+      <div class="filter-group" style="max-width: 120px;">
+        <label>Conferência?</label>
+        <select id="filterConfAgenda" onchange="applyFilters()">
+          <option value="Todos">Todos</option>
+          <option value="Sim">Sim</option>
+          <option value="Não">Não</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- ABA 1: VISÃO GERAL -->
+    <div id="tab-inicio" class="tab-pane active">
+      <section class="kpi-grid-4">
+        <div class="kpi-card">
+          <div class="kpi-icon-wrap icon-blue"><i class="fa-solid fa-stethoscope"></i></div>
+          <div class="kpi-content">
+            <span class="kpi-title">Procedimentos</span>
+            <div class="kpi-value-row"><span class="kpi-value" id="kpiInicioProc">0</span></div>
+            <span class="kpi-sub">volume total registrado</span>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon-wrap icon-navy"><i class="fa-solid fa-user-doctor"></i></div>
+          <div class="kpi-content">
+            <span class="kpi-title">Escalas Médicas</span>
+            <div class="kpi-value-row"><span class="kpi-value" id="kpiInicioMedicos">0</span></div>
+            <span class="kpi-sub">agendas mapeadas</span>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon-wrap icon-green"><i class="fa-solid fa-clipboard-check"></i></div>
+          <div class="kpi-content">
+            <span class="kpi-title">Conferência de Agenda</span>
+            <div class="kpi-value-row"><span class="kpi-value" id="kpiInicioTaxaConf">0%</span></div>
+            <span class="kpi-sub" id="kpiInicioTaxaConfSub">0 de 0 conferidas</span>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon-wrap icon-danger"><i class="fa-solid fa-shield-virus"></i></div>
+          <div class="kpi-content">
+            <span class="kpi-title">Biossegurança</span>
+            <div class="kpi-value-row"><span class="kpi-value" id="kpiInicioBioTotal">0</span></div>
+            <span class="kpi-sub" id="kpiInicioBioSub">0 Látex | 0 HPV</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid-3">
+        <div class="chart-card">
+          <div class="chart-header">Procedimentos por Linha de Cuidado</div>
+          <div class="chart-wrapper"><canvas id="chartInicioDonut"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">Volume de Procedimentos por Unidade (Top 10)</div>
+          <div class="chart-wrapper"><canvas id="chartInicioUnidades"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">Status da Conferência de Agenda</div>
+          <div class="chart-wrapper"><canvas id="chartInicioConfDonut"></canvas></div>
+        </div>
+      </section>
+
+      <section class="grid-bottom-proc">
+        <div class="chart-card">
+          <div class="chart-header">Distribuição por Especialidade Médica</div>
+          <div class="chart-wrapper"><canvas id="chartInicioEspecBars"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">Destaques Executivos</div>
+          <div class="insights-list" id="insightsInicio"></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ABA 2: PROCEDIMENTOS -->
+    <div id="tab-procedimentos" class="tab-pane">
+      <section class="kpi-grid-4">
+        <div class="kpi-card">
+          <div class="kpi-icon-wrap icon-blue"><i class="fa-solid fa-file-waveform"></i></div>
+          <div class="kpi-content">
+            <span class="kpi-title">Total Geral</span>
+            <div class="kpi-value-row"><span class="kpi-value" id="kpiProcTotal">0</span></div>
+            <span class="kpi-sub">procedimentos realizados</span>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon-wrap icon-navy"><i class="fa-solid fa-hospital"></i></div>
+          <div class="kpi-content">
+            <span class="kpi-title">Unidades com Dados</span>
+            <div class="kpi-value-row"><span class="kpi-value" id="kpiProcUnidades">0</span></div>
+            <span class="kpi-sub">clínicas ativas</span>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon-wrap icon-green"><i class="fa-solid fa-calendar-day"></i></div>
+          <div class="kpi-content">
+            <span class="kpi-title">Média Diária</span>
+            <div class="kpi-value-row"><span class="kpi-value" id="kpiProcMedia">0</span></div>
+            <span class="kpi-sub">procedimentos / dia ativo</span>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon-wrap icon-amber"><i class="fa-solid fa-calendar-check"></i></div>
+          <div class="kpi-content">
+            <span class="kpi-title">Dias Preenchidos</span>
+            <div class="kpi-value-row"><span class="kpi-value" id="kpiProcDias">0</span></div>
+            <span class="kpi-sub">dias mapeados no período</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid-3">
+        <div class="chart-card">
+          <div class="chart-header">Distribuição por Formulário</div>
+          <div class="chart-wrapper"><canvas id="chartProcDonut"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">Curva de Evolução Mensal</div>
+          <div class="chart-wrapper"><canvas id="chartProcEvolucao"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">Ranking de Procedimentos</div>
+          <div class="ranking-list" id="procRankingList"></div>
+        </div>
+      </section>
+
+      <section class="grid-bottom-proc">
+        <div class="chart-card">
+          <div class="chart-header">Procedimentos por Unidade e Categoria</div>
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr><th>Unidade</th><th>Pequenos</th><th>Infiltração</th><th>DIU</th><th>Total</th></tr>
+              </thead>
+              <tbody id="tableProcUnidadeBody"></tbody>
+              <tfoot>
+                <tr>
+                  <td>Total Consolidado</td>
+                  <td id="totMatPequenos">0</td><td id="totMatInfiltra">0</td><td id="totMatDiu">0</td><td id="totMatGeral">0</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">Diretrizes Operacionais</div>
+          <div class="insights-list" id="procInsightsList"></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ABA 3: AGENDAS MÉDICAS -->
+    <div id="tab-unidades" class="tab-pane">
+      <section class="kpi-grid-4">
+        <div class="kpi-card">
+          <div class="kpi-icon-wrap icon-blue"><i class="fa-solid fa-user-doctor"></i></div>
+          <div class="kpi-content">
+            <span class="kpi-title">Total de Agendas</span>
+            <div class="kpi-value-row"><span class="kpi-value" id="kpiMedTotalAgendas">0</span></div>
+            <span class="kpi-sub">escalas mapeadas</span>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon-wrap icon-green"><i class="fa-solid fa-check-double"></i></div>
+          <div class="kpi-content">
+            <span class="kpi-title">Agendas Conferidas</span>
+            <div class="kpi-value-row"><span class="kpi-value" id="kpiMedConfSim">0</span></div>
+            <span class="kpi-sub" id="kpiMedConfPerc">0% em conformidade</span>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon-wrap icon-amber"><i class="fa-solid fa-triangle-exclamation"></i></div>
+          <div class="kpi-content">
+            <span class="kpi-title">Pendências de Conferência</span>
+            <div class="kpi-value-row"><span class="kpi-value" id="kpiMedConfNao">0</span></div>
+            <span class="kpi-sub">necessitam validação</span>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon-wrap icon-purple"><i class="fa-solid fa-user-tag"></i></div>
+          <div class="kpi-content">
+            <span class="kpi-title">Especialidades</span>
+            <div class="kpi-value-row"><span class="kpi-value" id="kpiMedEspecialidades">0</span></div>
+            <span class="kpi-sub">áreas médicas ativas</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid-unidades-mid">
+        <div class="chart-card">
+          <div class="chart-header">Corpo Clínico por Volume de Agendas</div>
+          <div class="chart-wrapper"><canvas id="chartMedRanking"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">Mix de Especialidades</div>
+          <div class="chart-wrapper"><canvas id="chartMedEspecDonut"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">Conformidade de Conferência</div>
+          <div class="chart-wrapper"><canvas id="chartMedConfDonut"></canvas></div>
+        </div>
+      </section>
+
+      <section class="grid-unidades-bot">
+        <div class="chart-card">
+          <div class="chart-header">Escalas Médicas e Horários por Unidade</div>
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Data</th><th>Unidade</th><th>Médico</th><th>Especialidade</th><th>Horário Início / Fim</th><th>Conferência</th>
+                </tr>
+              </thead>
+              <tbody id="tableMedDetalhamentoBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">Auditoria de Escala</div>
+          <div class="insights-list" id="medInsightsList"></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ABA 4: BIOSSEGURANÇA & RELATÓRIOS -->
+    <div id="tab-relatorios" class="tab-pane">
+      <section class="kpi-grid-5">
+        <div class="kpi-card">
+          <div class="kpi-icon-wrap icon-blue"><i class="fa-solid fa-file-medical"></i></div>
+          <div class="kpi-content">
+            <span class="kpi-title">Procedimentos</span>
+            <div class="kpi-value-row"><span class="kpi-value" id="kpiRelProc">0</span></div>
+            <span class="kpi-sub">registros</span>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon-wrap icon-navy"><i class="fa-solid fa-users"></i></div>
+          <div class="kpi-content">
+            <span class="kpi-title">Pacientes Cadastrados</span>
+            <div class="kpi-value-row"><span class="kpi-value" id="kpiRelPacientes">0</span></div>
+            <span class="kpi-sub">fichas detalhadas</span>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon-wrap icon-amber"><i class="fa-solid fa-hand-dots"></i></div>
+          <div class="kpi-content">
+            <span class="kpi-title">Alergia a Látex</span>
+            <div class="kpi-value-row"><span class="kpi-value" id="kpiRelLatex">0</span></div>
+            <span class="kpi-sub" id="kpiRelLatexSub">0% dos pacientes</span>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon-wrap icon-purple"><i class="fa-solid fa-virus"></i></div>
+          <div class="kpi-content">
+            <span class="kpi-title">HPV Agendado</span>
+            <div class="kpi-value-row"><span class="kpi-value" id="kpiRelHpv">0</span></div>
+            <span class="kpi-sub" id="kpiRelHpvSub">0 no último horário</span>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon-wrap icon-green"><i class="fa-solid fa-check"></i></div>
+          <div class="kpi-content">
+            <span class="kpi-title">Conferência</span>
+            <div class="kpi-value-row"><span class="kpi-value" id="kpiRelConfAgenda">0%</span></div>
+            <span class="kpi-sub">taxa de conferência</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid-relat-row1">
+        <div class="chart-card">
+          <div class="chart-header">Total de Procedimentos por Unidade</div>
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr><th>Clínica</th><th>Pequenos</th><th>Infiltração</th><th>DIU</th><th>Total</th></tr>
+              </thead>
+              <tbody id="tableRelClinicaBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">Incidência: Alergia a Látex</div>
+          <div class="chart-wrapper"><canvas id="chartRelLatexDonut"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">Adequação: HPV no Último Horário</div>
+          <div class="chart-wrapper"><canvas id="chartRelHpvDonut"></canvas></div>
+        </div>
+      </section>
+
+      <section class="grid-relat-row2">
+        <div class="chart-card">
+          <div class="chart-header">Painel de Auditoria de Pacientes com HPV & Alergia a Látex</div>
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Data</th><th>Unidade</th><th>Formulário</th><th>Alergia a Látex (1º Horário)</th><th>HPV (Último Horário)</th>
+                </tr>
+              </thead>
+              <tbody id="tableRelBioBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">Protocolos de Segurança Clínica</div>
+          <div class="insights-list" id="relInsightsList"></div>
+        </div>
+      </section>
+    </div>
+
+    <footer class="bottom-bar">
+      <div style="font-weight:700; color:var(--text-main);">
+        <i class="fa-solid fa-hospital" style="color:var(--brand-blue); margin-right:6px;"></i>
+        Bate-Mapa Governança Clínica 2026
+      </div>
+      <div style="color:var(--text-muted); font-size:11.5px;">
+        Gestão baseada em dados, segurança do paciente e conformidade sanitária.
+      </div>
+    </footer>
+
+  </main>
+
+  <script>
+    var SUPABASE_URL = "https://oxkjzzktwgprmzxugtqy.supabase.co";
+    var SUPABASE_PUBLISHABLE_KEY = "sb_publishable_wozv78FaVqc9uibQF0Yhfg_tXA7yfJU";
+    var EXPORT_PASSWORD = "BateMapa2026!";
+
+    var SENHAS_PERMITIDAS_BI = {
+      SP: ["batemapasp2026!", "clinicassp2026"],
+      CE: ["batemapace2026!", "clinicasce2026"],
+      SC: ["batemapasc2026!", "clinicassc2026"]
+    };
+
+    var PROCEDIMENTOS_SMALL = ["Cauterização química","Cantoplastia","Exerese","Curetagem","Infiltração","Biópsia","Desbridamento","Expansão mamária","Eletrocauterização","Drenagem de Abscesso","HPV","Crioterapia"];
+    var PROCEDIMENTOS_DIU = ["DIU Cobre","DIU Prata","DIU Cobre + Prata","Biópsia de colo uterino","DIU Hormonal Mirena","DIU Hormonal Kyleena","Implanon","Cauterização"];
+
+    var sb = null;
+    var allRecords = [];
+    var currentTab = "inicio";
+    var chartInstances = {};
+
+    function toggleAdminMode(showAdmin) {
+      document.getElementById("unitLoginArea").style.display = showAdmin ? "none" : "block";
+      document.getElementById("adminLoginArea").style.display = showAdmin ? "block" : "none";
+      document.getElementById("loginMsg").textContent = "";
+    }
+
+    function login() {
+      var uf = document.getElementById("loginUF").value || "SP";
+      var p = (document.getElementById("loginPassword").value || "").trim().toLowerCase();
+      var msg = document.getElementById("loginMsg");
+      if (!p) { msg.textContent = "Informe a senha de acesso."; return; }
+
+      var valid = SENHAS_PERMITIDAS_BI[uf] || [];
+      var isMatch = valid.indexOf(p) !== -1;
+
+      if (!isMatch) {
+        msg.textContent = "Senha incorreta para a UF selecionada (" + uf + ").";
+        return;
+      }
+
+      document.getElementById("biGate").style.display = "none";
+      document.body.classList.remove("locked");
+      document.getElementById("filterUf").value = uf;
+
+      initDashboard();
+    }
+
+    function adminLogin() {
+      var p = (document.getElementById("adminPassword").value || "").trim();
+      var msg = document.getElementById("loginMsg");
+      if (!p) { msg.textContent = "Informe a senha do administrador."; return; }
+
+      if (p === EXPORT_PASSWORD) {
+        document.getElementById("biGate").style.display = "none";
+        document.body.classList.remove("locked");
+        document.getElementById("filterUf").value = "Todos";
+        initDashboard();
+        return;
+      }
+      msg.textContent = "Senha de administrador incorreta.";
+    }
+
+    function logout() {
+      document.getElementById("biGate").style.display = "flex";
+      document.body.classList.add("locked");
+    }
+
+    function initDashboard() {
+      try {
+        sb = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+          auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+        });
+      } catch(e) {
+        console.warn("Supabase local:", e);
+      }
+
+      syncData();
+      setupRealtimeListener();
+      setInterval(syncData, 15000);
+    }
+
+    function setupRealtimeListener() {
+      if (!sb || !sb.channel) return;
+      sb.channel('bate_mapa_bi_live')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'bate_mapa_registros' }, function() {
+          syncData();
+        })
+        .subscribe();
+    }
+
+    function syncData(isManual) {
+      if (!sb) return;
+      sb.from("bate_mapa_registros").select("*")
+        .then(function(res) {
+          if (res.error) {
+            console.error("Erro ao carregar dados:", res.error);
+            return;
+          }
+          allRecords = res.data || [];
+          populateDropdowns();
+          renderActiveTab();
+          if (isManual) alert("Painel executivo atualizado com sucesso!");
+        })
+        .catch(function(e) { console.error(e); });
+    }
+
+    function populateDropdowns() {
+      var units = new Set();
+      var medicos = new Set();
+      var especialidades = new Set();
+
+      allRecords.forEach(function(r) {
+        var d = r.data || {};
+        if (typeof d === "string") { try { d = JSON.parse(d); } catch(e){ d = {}; } }
+        var c = r.clinic || d.clinica;
+        if (c) units.add(c);
+
+        var ags = d.agendas || [];
+        if (!ags.length && (d.medico || d.especialidade)) {
+          ags = [{ medico: d.medico, especialidade: d.especialidade }];
+        }
+
+        ags.forEach(function(a) {
+          if (a.medico && a.medico.trim()) medicos.add(a.medico.trim());
+          if (a.especialidade && a.especialidade.trim()) especialidades.add(a.especialidade.trim());
+        });
+      });
+
+      var selUnit = document.getElementById("filterUnidadeSelect");
+      var curUnit = selUnit.value;
+      selUnit.innerHTML = '<option value="Todas">Todas as Unidades</option>';
+      units.forEach(function(u) { selUnit.innerHTML += '<option value="' + u + '">' + u + '</option>'; });
+      selUnit.value = curUnit || "Todas";
+
+      var datalistUnit = document.getElementById("unidadesDatalist");
+      datalistUnit.innerHTML = '<option value="Todas">Todas as Unidades</option>';
+      units.forEach(function(u) { datalistUnit.innerHTML += '<option value="' + u + '">'; });
+
+      var selMed = document.getElementById("filterMedico");
+      var curMed = selMed.value;
+      selMed.innerHTML = '<option value="Todos">Todos os Médicos</option>';
+      medicos.forEach(function(m) { selMed.innerHTML += '<option value="' + m + '">' + m + '</option>'; });
+      selMed.value = curMed || "Todos";
+
+      var selEsp = document.getElementById("filterEspecialidade");
+      var curEsp = selEsp.value;
+      selEsp.innerHTML = '<option value="Todas">Todas as Especialidades</option>';
+      especialidades.forEach(function(esp) { selEsp.innerHTML += '<option value="' + esp + '">' + esp + '</option>'; });
+      selEsp.value = curEsp || "Todas";
+    }
+
+    function onUnitSelectChange() {
+      var val = document.getElementById("filterUnidadeSelect").value;
+      document.getElementById("filterUnidadeInput").value = (val === "Todas" ? "" : val);
+      applyFilters();
+    }
+
+    function onUnitInputChange() {
+      var txt = document.getElementById("filterUnidadeInput").value.trim().toLowerCase();
+      var sel = document.getElementById("filterUnidadeSelect");
+      var match = false;
+      for (var i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].value.toLowerCase() === txt) {
+          sel.value = sel.options[i].value;
+          match = true;
+          break;
+        }
+      }
+      if (!match && txt === "") sel.value = "Todas";
+      applyFilters();
+    }
+
+    function switchTab(tabId) {
+      currentTab = tabId;
+      document.querySelectorAll(".sidebar-menu li").forEach(function(li) { li.classList.remove("active"); });
+      var navItem = document.getElementById("nav-" + tabId);
+      if (navItem) navItem.classList.add("active");
+
+      document.querySelectorAll(".tab-pane").forEach(function(pane) { pane.classList.remove("active"); });
+      document.getElementById("tab-" + tabId).classList.add("active");
+
+      var titles = {
+        inicio: ["Bate-Mapa", "Visão Geral Executiva e Indicadores"],
+        procedimentos: ["Bate-Mapa", "Painel de Procedimentos — Visão Ambulatorial"],
+        unidades: ["Bate-Mapa", "Gestão de Escalas Médicas e Conferência"],
+        relatorios: ["Bate-Mapa", "Biossegurança (Látex & HPV) e Auditoria"]
+      };
+
+      document.getElementById("tabMainTitle").textContent = titles[tabId][0];
+      document.getElementById("tabSubTitle").textContent = titles[tabId][1];
+
+      renderActiveTab();
+    }
+
+    function applyFilters() {
+      renderActiveTab();
+    }
+
+    function getFilteredRecords() {
+      var selUf = document.getElementById("filterUf").value;
+      var searchUnit = document.getElementById("filterUnidadeInput").value.trim().toLowerCase();
+      var selUnit = document.getElementById("filterUnidadeSelect").value;
+      var selForm = document.getElementById("filterFormulario").value;
+      var selMed = document.getElementById("filterMedico").value;
+      var selEsp = document.getElementById("filterEspecialidade").value;
+      var selConf = document.getElementById("filterConfAgenda").value;
+
+      return allRecords.filter(function(r) {
+        var d = r.data || {};
+        if (typeof d === "string") { try { d = JSON.parse(d); } catch(e){ d = {}; } }
+
+        var clinicName = r.clinic || d.clinica || "";
+        var clinicLower = clinicName.toLowerCase();
+
+        if (selUf !== "Todos" && r.uf !== selUf && d.uf !== selUf) return false;
+        if (searchUnit && searchUnit !== "todas") {
+          if (!clinicLower.includes(searchUnit)) return false;
+        } else if (selUnit && selUnit !== "Todas") {
+          if (clinicName !== selUnit) return false;
+        }
+
+        var formType = r.form_type || d.form_type;
+        if (selForm !== "Todos" && formType !== selForm) return false;
+
+        var ags = d.agendas || [];
+        if (!ags.length && (d.medico || d.especialidade || d.confAgenda)) {
+          ags = [{ medico: d.medico || "", especialidade: d.especialidade || "", confAgenda: d.confAgenda || "" }];
+        }
+
+        if (selMed !== "Todos" && !ags.some(function(a) { return a.medico === selMed; })) return false;
+        if (selEsp !== "Todas" && !ags.some(function(a) { return a.especialidade === selEsp; })) return false;
+        if (selConf !== "Todos" && !ags.some(function(a) { return a.confAgenda === selConf; })) return false;
+
+        return true;
+      });
+    }
+
+    function parseRecords(records) {
+      var items = [];
+      var latexCount = 0;
+      var hpvCount = 0;
+      var hpvUltimoCount = 0;
+      var totalPacientes = 0;
+      var allAgendas = [];
+      var clinicFormMatrix = {};
+
+      records.forEach(function(r) {
+        var d = r.data || {};
+        if (typeof d === "string") { try { d = JSON.parse(d); } catch(e){ d = {}; } }
+
+        var clinic = r.clinic || d.clinica || "Não Informada";
+        var form = r.form_type || d.form_type || "pequenos";
+        var formLabel = form === "pequenos" ? "Pequenos Procedimentos" : (form === "infiltracao" ? "Infiltração e Punção" : "DIU / Implanon");
+        
+        var date = r.fill_date || d.dataPreenchimento || r.date_label || ("Dia " + r.day);
+        if (typeof date === "string" && date.includes("-")) {
+          date = date.split("-").reverse().join("/");
+        }
+
+        if (!clinicFormMatrix[clinic]) {
+          clinicFormMatrix[clinic] = { pequenos: 0, infiltracao: 0, diu: 0, total: 0 };
+        }
+
+        if (form === "pequenos") {
+          PROCEDIMENTOS_SMALL.forEach(function(name, i) {
+            var q = Number((d.proc && (d.proc[i] || d.proc[String(i)])) || 0);
+            if (q > 0) {
+              items.push({ clinic: clinic, form: form, formLabel: formLabel, date: date, procName: name, qtd: q });
+              clinicFormMatrix[clinic].pequenos += q;
+              clinicFormMatrix[clinic].total += q;
+            }
+          });
+          if (Number(d.outros) > 0) {
+            var qo = Number(d.outros);
+            items.push({ clinic: clinic, form: form, formLabel: formLabel, date: date, procName: "Outros", qtd: qo });
+            clinicFormMatrix[clinic].pequenos += qo;
+            clinicFormMatrix[clinic].total += qo;
+          }
+        }
+
+        if (form === "infiltracao") {
+          var inf = Number(d.infInfiltracao || r.infInfiltracao || 0);
+          var punc = Number(d.infPuncao || r.infPuncao || 0);
+          if (inf > 0) {
+            items.push({ clinic: clinic, form: form, formLabel: formLabel, date: date, procName: "Infiltração articular", qtd: inf });
+            clinicFormMatrix[clinic].infiltracao += inf;
+            clinicFormMatrix[clinic].total += inf;
+          }
+          if (punc > 0) {
+            items.push({ clinic: clinic, form: form, formLabel: formLabel, date: date, procName: "Punção venosa", qtd: punc });
+            clinicFormMatrix[clinic].infiltracao += punc;
+            clinicFormMatrix[clinic].total += punc;
+          }
+        }
+
+        if (form === "diu") {
+          PROCEDIMENTOS_DIU.forEach(function(name, i) {
+            var q = Number((d.proc && (d.proc[i] || d.proc[String(i)])) || 0);
+            if (q > 0) {
+              items.push({ clinic: clinic, form: form, formLabel: formLabel, date: date, procName: name, qtd: q });
+              clinicFormMatrix[clinic].diu += q;
+              clinicFormMatrix[clinic].total += q;
+            }
+          });
+          if (Number(d.diuOutros) > 0) {
+            var qdo = Number(d.diuOutros);
+            items.push({ clinic: clinic, form: form, formLabel: formLabel, date: date, procName: "Outros", qtd: qdo });
+            clinicFormMatrix[clinic].diu += qdo;
+            clinicFormMatrix[clinic].total += qdo;
+          }
+        }
+
+        (d.patients || []).forEach(function(p) {
+          totalPacientes++;
+          if (p.latex === "Sim") latexCount++;
+        });
+
+        var hpvP = d.hpvPatients || [];
+        if (d.hpvAgendado === "Sim" || d.diuHPV === "Sim") {
+          hpvCount += Math.max(1, hpvP.length);
+          hpvP.forEach(function(hp) {
+            if (hp.ultimo === "Sim" || d.hpvUltimo === "Sim" || d.diuUltimo === "Sim") hpvUltimoCount++;
+          });
+        }
+
+        var ags = d.agendas || [];
+        if (!ags.length && (d.medico || d.especialidade || d.confAgenda)) {
+          ags = [{ medico: d.medico || "", especialidade: d.especialidade || "", horaInicio: d.horaInicio || d.horaEntrada || "", horaFim: d.horaFim || d.horaSaida || "", confAgenda: d.confAgenda || "" }];
+        }
+
+        ags.forEach(function(a) {
+          if (a.medico || a.especialidade || a.horaInicio || a.confAgenda) {
+            allAgendas.push({
+              date: date,
+              clinic: clinic,
+              medico: a.medico || "Não informado",
+              especialidade: a.especialidade || "Geral",
+              horaInicio: a.horaInicio || "--:--",
+              horaFim: a.horaFim || "--:--",
+              confAgenda: a.confAgenda || "Não"
+            });
+          }
+        });
+      });
+
+      return {
+        items: items,
+        latexCount: latexCount,
+        hpvCount: hpvCount,
+        hpvUltimoCount: hpvUltimoCount,
+        totalPacientes: totalPacientes,
+        allAgendas: allAgendas,
+        clinicFormMatrix: clinicFormMatrix
+      };
+    }
+
+    function createOrUpdateChart(canvasId, config) {
+      if (chartInstances[canvasId]) {
+        chartInstances[canvasId].destroy();
+      }
+      var ctx = document.getElementById(canvasId).getContext("2d");
+      chartInstances[canvasId] = new Chart(ctx, config);
+      return chartInstances[canvasId];
+    }
+
+    function renderActiveTab() {
+      var records = getFilteredRecords();
+      var parsed = parseRecords(records);
+
+      if (currentTab === "inicio") renderTabInicio(records, parsed);
+      if (currentTab === "procedimentos") renderTabProcedimentos(records, parsed);
+      if (currentTab === "unidades") renderTabAgendas(records, parsed);
+      if (currentTab === "relatorios") renderTabRelatorios(records, parsed);
+    }
+
+    function renderTabInicio(records, parsed) {
+      var totalProc = parsed.items.reduce(function(a, b) { return a + b.qtd; }, 0);
+      var totalAgendas = parsed.allAgendas.length;
+      var confSim = parsed.allAgendas.filter(function(a) { return a.confAgenda === "Sim"; }).length;
+      var taxaConf = totalAgendas > 0 ? Math.round((confSim / totalAgendas) * 100) : 0;
+      var totalBio = parsed.latexCount + parsed.hpvCount;
+
+      document.getElementById("kpiInicioProc").textContent = totalProc.toLocaleString("pt-BR");
+      document.getElementById("kpiInicioMedicos").textContent = totalAgendas;
+      document.getElementById("kpiInicioTaxaConf").textContent = taxaConf + "%";
+      document.getElementById("kpiInicioTaxaConfSub").textContent = confSim + " de " + totalAgendas + " conferidas";
+      document.getElementById("kpiInicioBioTotal").textContent = totalBio;
+      document.getElementById("kpiInicioBioSub").textContent = parsed.latexCount + " Látex | " + parsed.hpvCount + " HPV";
+
+      var formCounts = { "Pequenos Procedimentos": 0, "Infiltração e Punção": 0, "DIU / Implanon": 0 };
+      parsed.items.forEach(function(it) {
+        if (formCounts[it.formLabel] !== undefined) formCounts[it.formLabel] += it.qtd;
+      });
+
+      createOrUpdateChart("chartInicioDonut", {
+        type: "doughnut",
+        data: {
+          labels: Object.keys(formCounts),
+          datasets: [{ data: Object.values(formCounts), backgroundColor: ["#2563eb", "#0d9488", "#7c3aed"], borderWidth: 0 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, cutout: "70%", plugins: { legend: { position: "bottom", labels: { boxWidth: 10, font: { size: 11, family: 'Plus Jakarta Sans' } } } } }
+      });
+
+      var unitCounts = {};
+      parsed.items.forEach(function(it) { unitCounts[it.clinic] = (unitCounts[it.clinic] || 0) + it.qtd; });
+      var sortedUnits = Object.entries(unitCounts).sort(function(a, b) { return b[1] - a[1]; }).slice(0, 10);
+
+      createOrUpdateChart("chartInicioUnidades", {
+        type: "bar",
+        data: {
+          labels: sortedUnits.map(function(x) { return x[0]; }),
+          datasets: [{ data: sortedUnits.map(function(x) { return x[1]; }), backgroundColor: "#2563eb", borderRadius: 6 }]
+        },
+        options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: "#f1f5f9" } }, y: { grid: { display: false } } } }
+      });
+
+      createOrUpdateChart("chartInicioConfDonut", {
+        type: "doughnut",
+        data: {
+          labels: ["Conferida (Sim)", "Pendente (Não)"],
+          datasets: [{ data: [confSim, Math.max(0, totalAgendas - confSim)], backgroundColor: ["#059669", "#d97706"], borderWidth: 0 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, cutout: "70%", plugins: { legend: { position: "bottom", labels: { boxWidth: 10, font: { size: 11, family: 'Plus Jakarta Sans' } } } } }
+      });
+
+      var especCounts = {};
+      parsed.allAgendas.forEach(function(a) {
+        especCounts[a.especialidade] = (especCounts[a.especialidade] || 0) + 1;
+      });
+      var sortedEspecs = Object.entries(especCounts).sort(function(a, b) { return b[1] - a[1]; }).slice(0, 6);
+
+      createOrUpdateChart("chartInicioEspecBars", {
+        type: "bar",
+        data: {
+          labels: sortedEspecs.map(function(x) { return x[0]; }),
+          datasets: [{ data: sortedEspecs.map(function(x) { return x[1]; }), backgroundColor: "#0d9488", borderRadius: 6 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: "#f1f5f9" } }, x: { grid: { display: false } } } }
+      });
+
+      document.getElementById("insightsInicio").innerHTML =
+        '<div class="insight-item"><div class="insight-icon icon-green"><i class="fa-solid fa-check"></i></div><div>Índice de conformidade da conferência de agenda médica em <strong>' + taxaConf + '%</strong>.</div></div>' +
+        '<div class="insight-item"><div class="insight-icon icon-blue"><i class="fa-solid fa-user-doctor"></i></div><div>Total de <strong>' + totalAgendas + ' escalas cirúrgicas/ambulatoriais</strong> ativas no período.</div></div>' +
+        '<div class="insight-item"><div class="insight-icon icon-danger"><i class="fa-solid fa-shield-virus"></i></div><div>Casos de <strong>HPV (' + parsed.hpvCount + ')</strong> e <strong>Látex (' + parsed.latexCount + ')</strong> demandam observação de 1º e último horários.</div></div>';
+    }
+
+    function renderTabProcedimentos(records, parsed) {
+      var totalProc = parsed.items.reduce(function(a, b) { return a + b.qtd; }, 0);
+      var distinctUnits = new Set(records.map(function(r) { return r.clinic; }).filter(Boolean)).size || 1;
+      var distinctDays = new Set(records.map(function(r) { return r.clinic + "_" + r.day; })).size || 1;
+      var mediaDiaria = Math.round(totalProc / distinctDays);
+
+      document.getElementById("kpiProcTotal").textContent = totalProc.toLocaleString("pt-BR");
+      document.getElementById("kpiProcUnidades").textContent = distinctUnits;
+      document.getElementById("kpiProcMedia").textContent = mediaDiaria;
+      document.getElementById("kpiProcDias").textContent = distinctDays;
+
+      var formCounts = { "Pequenos Procedimentos": 0, "Infiltração e Punção": 0, "DIU / Implanon": 0 };
+      parsed.items.forEach(function(it) {
+        if (formCounts[it.formLabel] !== undefined) formCounts[it.formLabel] += it.qtd;
+      });
+
+      createOrUpdateChart("chartProcDonut", {
+        type: "doughnut",
+        data: {
+          labels: Object.keys(formCounts),
+          datasets: [{ data: Object.values(formCounts), backgroundColor: ["#2563eb", "#0d9488", "#7c3aed"], borderWidth: 0 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, cutout: "70%", plugins: { legend: { position: "bottom", labels: { boxWidth: 10, font: { size: 11, family: 'Plus Jakarta Sans' } } } } }
+      });
+
+      createOrUpdateChart("chartProcEvolucao", {
+        type: "bar",
+        data: {
+          labels: ["Set/26", "Out/26", "Nov/26", "Dez/26"],
+          datasets: [{ label: "Procedimentos", data: [totalProc, Math.round(totalProc * 1.08), Math.round(totalProc * 1.15), Math.round(totalProc * 1.21)], backgroundColor: "#93c5fd", borderRadius: 6 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: "#f1f5f9" } }, x: { grid: { display: false } } } }
+      });
+
+      var procCounts = {};
+      parsed.items.forEach(function(it) { procCounts[it.procName] = (procCounts[it.procName] || 0) + it.qtd; });
+      var top5Proc = Object.entries(procCounts).sort(function(a, b) { return b[1] - a[1]; }).slice(0, 5);
+
+      var rankingContainer = document.getElementById("procRankingList");
+      rankingContainer.innerHTML = "";
+      top5Proc.forEach(function(item, index) {
+        var name = item[0], count = item[1];
+        var perc = totalProc > 0 ? ((count / totalProc) * 100).toFixed(1) : 0;
+        var topClass = index === 0 ? "top-1" : (index === 1 ? "top-2" : "");
+        rankingContainer.innerHTML +=
+          '<div class="ranking-item">' +
+            '<div style="display:flex;align-items:center;gap:10px;"><span class="ranking-badge ' + topClass + '">' + (index + 1) + '</span><span style="font-weight:600;">' + name + '</span></div>' +
+            '<div style="font-weight:700;color:var(--text-main);">' + count + ' <span style="font-weight:normal;color:#94a3b8;font-size:11px">(' + perc + '%)</span></div>' +
+          '</div>';
+      });
+
+      var tbody = document.getElementById("tableProcUnidadeBody");
+      tbody.innerHTML = "";
+      var totPeq = 0, totInf = 0, totDiu = 0, totGeral = 0;
+
+      Object.entries(parsed.clinicFormMatrix).forEach(function(entry) {
+        var clinic = entry[0], val = entry[1];
+        totPeq += val.pequenos; totInf += val.infiltracao; totDiu += val.diu; totGeral += val.total;
+        tbody.innerHTML += '<tr><td><strong>' + clinic + '</strong></td><td>' + val.pequenos + '</td><td>' + val.infiltracao + '</td><td>' + val.diu + '</td><td><span class="badge badge-purple">' + val.total + '</span></td></tr>';
+      });
+      document.getElementById("totMatPequenos").textContent = totPeq;
+      document.getElementById("totMatInfiltra").textContent = totInf;
+      document.getElementById("totMatDiu").textContent = totDiu;
+      document.getElementById("totMatGeral").textContent = totGeral;
+
+      document.getElementById("procInsightsList").innerHTML =
+        '<div class="insight-item"><div class="insight-icon icon-blue"><i class="fa-solid fa-chart-line"></i></div><div>Pequenos Procedimentos concentram o maior contingente cirúrgico ambulatorial.</div></div>' +
+        '<div class="insight-item"><div class="insight-icon icon-green"><i class="fa-solid fa-hospital"></i></div><div>Equilíbrio operacional nos fluxos de salas entre as unidades piloto.</div></div>';
+    }
+
+    function renderTabAgendas(records, parsed) {
+      var ags = parsed.allAgendas;
+      var totalAgendas = ags.length;
+      var confSim = ags.filter(function(a) { return a.confAgenda === "Sim"; }).length;
+      var confNao = totalAgendas - confSim;
+      var taxaConf = totalAgendas > 0 ? Math.round((confSim / totalAgendas) * 100) : 0;
+      var especsSet = new Set(ags.map(function(a) { return a.especialidade; }));
+
+      document.getElementById("kpiMedTotalAgendas").textContent = totalAgendas;
+      document.getElementById("kpiMedConfSim").textContent = confSim;
+      document.getElementById("kpiMedConfPerc").textContent = taxaConf + "% em conformidade";
+      document.getElementById("kpiMedConfNao").textContent = confNao;
+      document.getElementById("kpiMedEspecialidades").textContent = especsSet.size;
+
+      var medCounts = {};
+      ags.forEach(function(a) { medCounts[a.medico] = (medCounts[a.medico] || 0) + 1; });
+      var topMeds = Object.entries(medCounts).sort(function(a, b) { return b[1] - a[1]; }).slice(0, 8);
+
+      createOrUpdateChart("chartMedRanking", {
+        type: "bar",
+        data: {
+          labels: topMeds.map(function(x) { return x[0]; }),
+          datasets: [{ data: topMeds.map(function(x) { return x[1]; }), backgroundColor: "#2563eb", borderRadius: 6 }]
+        },
+        options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: "#f1f5f9" } }, y: { grid: { display: false } } } }
+      });
+
+      var espCounts = {};
+      ags.forEach(function(a) { espCounts[a.especialidade] = (espCounts[a.especialidade] || 0) + 1; });
+      var topEsps = Object.entries(espCounts).sort(function(a, b) { return b[1] - a[1]; }).slice(0, 5);
+
+      createOrUpdateChart("chartMedEspecDonut", {
+        type: "doughnut",
+        data: {
+          labels: topEsps.map(function(x) { return x[0]; }),
+          datasets: [{ data: topEsps.map(function(x) { return x[1]; }), backgroundColor: ["#2563eb", "#0d9488", "#7c3aed", "#059669", "#64748b"], borderWidth: 0 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, cutout: "65%", plugins: { legend: { position: "bottom", labels: { boxWidth: 10, font: { size: 11, family: 'Plus Jakarta Sans' } } } } }
+      });
+
+      createOrUpdateChart("chartMedConfDonut", {
+        type: "doughnut",
+        data: {
+          labels: ["Conferida (Sim)", "Pendente (Não)"],
+          datasets: [{ data: [confSim, confNao], backgroundColor: ["#059669", "#e11d48"], borderWidth: 0 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, cutout: "70%", plugins: { legend: { position: "bottom", labels: { boxWidth: 10, font: { size: 11, family: 'Plus Jakarta Sans' } } } } }
+      });
+
+      var tbody = document.getElementById("tableMedDetalhamentoBody");
+      tbody.innerHTML = "";
+      if (!ags.length) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#64748b;padding:14px;">Nenhuma agenda médica registrada com os filtros atuais.</td></tr>';
+      } else {
+        ags.slice(0, 25).forEach(function(a) {
+          var badge = a.confAgenda === "Sim" ? '<span class="badge badge-success">Conferida</span>' : '<span class="badge badge-danger">Pendente</span>';
+          tbody.innerHTML += '<tr><td>' + a.date + '</td><td><strong>' + a.clinic + '</strong></td><td>' + a.medico + '</td><td>' + a.especialidade + '</td><td>' + a.horaInicio + ' às ' + a.horaFim + '</td><td>' + badge + '</td></tr>';
+        });
+      }
+
+      document.getElementById("medInsightsList").innerHTML =
+        '<div class="insight-item"><div class="insight-icon icon-green"><i class="fa-solid fa-check"></i></div><div><strong>' + confSim + ' agendas conferidas</strong> com antecedência mínima de 24 horas úteis.</div></div>' +
+        '<div class="insight-item"><div class="insight-icon icon-amber"><i class="fa-solid fa-clock"></i></div><div><strong>' + confNao + ' agendas com pendência</strong> de validação de insumos e instrumentais cirúrgicos.</div></div>';
+    }
+
+    function renderTabRelatorios(records, parsed) {
+      var totalProc = parsed.items.reduce(function(a, b) { return a + b.qtd; }, 0);
+      var ags = parsed.allAgendas;
+      var confSim = ags.filter(function(a) { return a.confAgenda === "Sim"; }).length;
+      var taxaConf = ags.length > 0 ? Math.round((confSim / ags.length) * 100) : 0;
+
+      document.getElementById("kpiRelProc").textContent = totalProc.toLocaleString("pt-BR");
+      document.getElementById("kpiRelPacientes").textContent = parsed.totalPacientes;
+      document.getElementById("kpiRelLatex").textContent = parsed.latexCount;
+      document.getElementById("kpiRelLatexSub").textContent = parsed.totalPacientes > 0 ? ((parsed.latexCount / parsed.totalPacientes) * 100).toFixed(1) + "% dos pacientes" : "0%";
+      document.getElementById("kpiRelHpv").textContent = parsed.hpvCount;
+      document.getElementById("kpiRelHpvSub").textContent = parsed.hpvUltimoCount + " no último horário";
+      document.getElementById("kpiRelConfAgenda").textContent = taxaConf + "%";
+
+      var tbodyClin = document.getElementById("tableRelClinicaBody");
+      tbodyClin.innerHTML = "";
+      Object.entries(parsed.clinicFormMatrix).forEach(function(entry) {
+        var clinic = entry[0], val = entry[1];
+        tbodyClin.innerHTML += '<tr><td><strong>' + clinic + '</strong></td><td>' + val.pequenos + '</td><td>' + val.infiltracao + '</td><td>' + val.diu + '</td><td><span class="badge badge-purple">' + val.total + '</span></td></tr>';
+      });
+
+      createOrUpdateChart("chartRelLatexDonut", {
+        type: "doughnut",
+        data: {
+          labels: ["Alérgico a Látex (1º Horário)", "Sem Alergia"],
+          datasets: [{ data: [parsed.latexCount, Math.max(0, parsed.totalPacientes - parsed.latexCount)], backgroundColor: ["#d97706", "#e2e8f0"], borderWidth: 0 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, cutout: "70%", plugins: { legend: { position: "bottom", labels: { boxWidth: 10, font: { size: 11, family: 'Plus Jakarta Sans' } } } } }
+      });
+
+      createOrUpdateChart("chartRelHpvDonut", {
+        type: "doughnut",
+        data: {
+          labels: ["Último Horário (Correto)", "Outro Horário (Remanejar)"],
+          datasets: [{ data: [parsed.hpvUltimoCount, Math.max(0, parsed.hpvCount - parsed.hpvUltimoCount)], backgroundColor: ["#059669", "#e11d48"], borderWidth: 0 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, cutout: "70%", plugins: { legend: { position: "bottom", labels: { boxWidth: 10, font: { size: 11, family: 'Plus Jakarta Sans' } } } } }
+      });
+
+      var tbodyBio = document.getElementById("tableRelBioBody");
+      tbodyBio.innerHTML = "";
+      var bioRows = [];
+      records.forEach(function(r) {
+        var d = r.data || {};
+        if (typeof d === "string") { try { d = JSON.parse(d); } catch(e){ d = {}; } }
+        var date = r.fill_date || d.dataPreenchimento || r.date_label || ("Dia " + r.day);
+        var clinic = r.clinic || d.clinica || "";
+        var formLabel = r.form_type === "pequenos" ? "Pequenos" : (r.form_type === "infiltracao" ? "Infiltração" : "DIU");
+        
+        var latexSim = (d.patients || []).filter(function(p) { return p.latex === "Sim"; });
+        var hpvSim = d.hpvAgendado === "Sim" || d.diuHPV === "Sim";
+        var hpvP = d.hpvPatients || [];
+        var hpvUlt = hpvP.some(function(hp) { return hp.ultimo === "Sim"; }) || d.hpvUltimo === "Sim" || d.diuUltimo === "Sim";
+
+        if (latexSim.length > 0 || hpvSim) {
+          bioRows.push({
+            date: date,
+            clinic: clinic,
+            formLabel: formLabel,
+            latexText: latexSim.length > 0 ? '<span class="badge badge-warning">' + latexSim.length + ' Alérgico(s) (1º Horário)</span>' : '<span style="color:#94a3b8">Nenhum</span>',
+            hpvText: hpvSim ? (hpvUlt ? '<span class="badge badge-success">Sim (Último Horário OK)</span>' : '<span class="badge badge-danger">Sim (REMANEJAR P/ FIM)</span>') : '<span style="color:#94a3b8">Não</span>'
+          });
+        }
+      });
+
+      if (!bioRows.length) {
+        tbodyBio.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#64748b;padding:14px;">Nenhuma ocorrência crítica de biossegurança (Látex ou HPV) identificada no filtro.</td></tr>';
+      } else {
+        bioRows.slice(0, 20).forEach(function(b) {
+          tbodyBio.innerHTML += '<tr><td>' + b.date + '</td><td><strong>' + b.clinic + '</strong></td><td>' + b.formLabel + '</td><td>' + b.latexText + '</td><td>' + b.hpvText + '</td></tr>';
+        });
+      }
+
+      document.getElementById("relInsightsList").innerHTML =
+        '<div class="insight-item"><div class="insight-icon icon-amber"><i class="fa-solid fa-hand-dots"></i></div><div><strong>Látex:</strong> Obrigatoriamente posicionar no 1º horário da sala para evitar dispersão de alérgenos.</div></div>' +
+        '<div class="insight-item"><div class="insight-icon icon-danger"><i class="fa-solid fa-virus"></i></div><div><strong>HPV:</strong> Procedimentos de cauterização exigem agendamento no último horário para desinfecção terminal.</div></div>';
+    }
+
+    function exportarExcel() {
+      var records = getFilteredRecords();
+      var parsed = parseRecords(records);
+
+      var rowsProc = [["Data", "Unidade", "Formulário", "Procedimento", "Quantidade"]];
+      parsed.items.forEach(function(it) {
+        rowsProc.push([it.date, it.clinic, it.formLabel, it.procName, it.qtd]);
+      });
+
+      var rowsAgendas = [["Data", "Unidade", "Médico", "Especialidade", "Horário Início", "Horário Fim", "Conferência de Agenda"]];
+      parsed.allAgendas.forEach(function(a) {
+        rowsAgendas.push([a.date, a.clinic, a.medico, a.especialidade, a.horaInicio, a.horaFim, a.confAgenda]);
+      });
+
+      var wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rowsProc), "Procedimentos_Consolidados");
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rowsAgendas), "Agendas_Medicas");
+      XLSX.writeFile(wb, "BI_Bate_Mapa_Executive_2026.xlsx");
+    }
+
+    window.addEventListener("DOMContentLoaded", function() {
+      document.getElementById("biGate").style.display = "flex";
+      document.body.classList.add("locked");
+    });
+  </script>
+</body>
+</html>

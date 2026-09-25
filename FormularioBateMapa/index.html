@@ -1,0 +1,926 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bate-Mapa Online 2026 — Piloto</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#eef1f5;color:#17202a;font-family:Arial,Helvetica,sans-serif}
+header{background:#fff;border-bottom:1px solid #cfd5dc;padding:14px 22px;position:sticky;top:0;z-index:20}.top{max-width:1300px;margin:auto;display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+h1{font-size:19px;margin:0}.muted{font-size:12px;color:#68717d;margin-top:3px}.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+button,select,input,textarea{font:inherit}button{border:1px solid #b9c1cb;background:#fff;border-radius:6px;padding:8px 11px;cursor:pointer}button.primary{background:#1f4e78;color:#fff;border-color:#1f4e78}button.danger{color:#a11}
+select,input,textarea{border:1px solid #b9c1cb;border-radius:6px;padding:8px;background:#fff}main{max-width:1300px;margin:18px auto;padding:0 12px}
+.notice{padding:10px 12px;background:#fff8e1;border:1px solid #e5c66b;border-radius:8px;margin:10px 0;font-size:.9rem}.instructions{background:#fff;border:1px solid #cfd5dc;border-radius:8px;padding:12px 16px;margin:10px 0}
+.instructions strong{display:block;margin-bottom:6px}.instructions ul{margin:5px 0 0 18px;padding:0}.instructions li{margin:4px 0}
+.paper{background:#fff;border:1px solid #bfc6cf;box-shadow:0 2px 8px #00000010;margin-bottom:20px}.title{padding:12px;text-align:center;font-weight:700;border-bottom:1px solid #bfc6cf}.dayhead{background:#e9edf2;padding:9px 12px;font-weight:700;border-bottom:1px solid #bfc6cf}
+.section-title{background:#dfe5eb;font-weight:700;padding:8px 10px;border-top:1px solid #bfc6cf;border-bottom:1px solid #bfc6cf;font-size:13px}
+.proc-grid{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid #bfc6cf}.proc{display:grid;grid-template-columns:1fr 75px;border-right:1px solid #bfc6cf;border-bottom:1px solid #bfc6cf;min-height:40px}.proc:nth-child(4n){border-right:0}.proc label{padding:9px;font-size:12px}.proc input{border:0;border-left:1px solid #bfc6cf;width:100%;text-align:center}
+.row{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid #bfc6cf}.row.full{grid-template-columns:1fr}.cell{padding:9px;border-right:1px solid #bfc6cf}.cell:last-child{border-right:0}.cell strong{display:block;font-size:12px;margin-bottom:5px}.cell input,.cell textarea{width:100%}
+.triple{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid #bfc6cf}.options{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.options strong{width:100%;margin-bottom:0}.options label{font-size:13px}
+.patient,.agenda-card{border-bottom:1px solid #d5dbe2;padding:10px;background:#fbfcfd}
+.patient-head,.agenda-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:8px;font-weight:700}
+.patient-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.field label{display:block;font-size:11px;font-weight:700;margin-bottom:4px}.field input{width:100%}
+.agenda-grid{display:grid;grid-template-columns:2fr 1fr 130px 130px;gap:8px;align-items:end}
+.radio-line{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:7px;font-size:12px}.radio-line label{font-size:12px;font-weight:400}
+.participants{width:100%;border-collapse:collapse}.participants th,.participants td{border:1px solid #cfd5dc;padding:7px;font-size:12px}.participants input{width:100%}
+.repeat-actions{padding:10px}.small-btn{padding:6px 9px;font-size:12px}.remove-btn{color:#a11}
+.audit{display:flex;gap:18px;flex-wrap:wrap;padding:10px;background:#f5f7fa;border-top:1px solid #cfd5dc;font-size:12px}
+.footer{display:flex;justify-content:space-between;gap:10px;padding:9px 12px;font-size:12px;color:#5d6670}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:9999}.loginbox,.exportbox{background:#fff;border-radius:14px;padding:26px;width:min(460px,92vw);box-shadow:0 20px 60px rgba(0,0,0,0.4)}.loginbox h2,.exportbox h2{margin:0 0 10px;font-size:19px}.loginbox label{display:block;font-size:12px;font-weight:700;margin-bottom:4px}.loginbox input,.loginbox select{width:100%;margin:2px 0 12px}.msg{color:#d33;font-size:13px;min-height:18px;margin-top:6px}.online{font-size:12px;color:#46505a;background:#f4f6f8;border:1px solid #d4d9df;border-radius:18px;padding:6px 10px}
+body.locked main,body.locked header .controls{filter:blur(2px);pointer-events:none}
+@media(max-width:900px){.proc-grid{grid-template-columns:repeat(2,1fr)}.patient-grid,.agenda-grid,.triple{grid-template-columns:1fr 1fr}.row{grid-template-columns:1fr}}
+@media(max-width:600px){.proc-grid,.patient-grid,.agenda-grid,.triple{grid-template-columns:1fr}header{position:static}}
+@media print{header,.notice,.instructions,.overlay,.repeat-actions,.remove-btn{display:none!important}body{background:#fff}main{margin:0;padding:0}.paper{box-shadow:none;border:0}}
+.latex-alert{margin:8px 0;padding:9px 12px;border-radius:8px;background:#fff4e8;border:1px solid #f2c28e;color:#9a4f00;font-size:13px}.latex-hidden{margin:8px 0;padding:8px 12px;border-radius:8px;background:#f5f7fa;color:#657384;font-size:13px}.participants select{width:100%;box-sizing:border-box;padding:7px;border:1px solid #ccd8e4;border-radius:6px;background:#fff}
+</style>
+</head>
+<body class="locked">
+<header><div class="top">
+<div><h1>Bate-Mapa Online — 2026</h1><div class="muted">Pequenos Procedimentos • Infiltração/Punção • DIU / Implanon</div></div>
+<div class="controls">
+<select id="formType"><option value="pequenos">Bate-Mapa — Pequenos Procedimentos</option><option value="infiltracao">Bate-Mapa — Infiltração e Punção</option><option value="diu">Bate-Mapa — DIU / Implanon</option></select>
+<select id="clinic"><option>A carregar clínicas...</option></select>
+<select id="uf" disabled>
+  <option value="SP">SP</option>
+  <option value="CE">CE</option>
+  <option value="SC">SC</option>
+</select>
+<select id="month"></select><select id="day"></select>
+<button id="newBtn" class="primary" type="button" onclick="novoRegisto()">Novo</button>
+<button id="saveBtn" type="button" onclick="guardarManual()">Salvar</button>
+<button id="printBtn" type="button" onclick="imprimirDia()">Imprimir dia</button>
+<button id="exportBtn" type="button" onclick="abrirExportacao()">Exportar Excel</button>
+<button id="clearBtn" class="danger" type="button" onclick="limparRegisto()">Limpar</button>
+</div><div class="online">Conexão: <strong id="onlineStatus">offline</strong> <button id="logoutBtn" class="small-btn" type="button" onclick="terminarSessao()">Sair</button></div>
+</div></header>
+
+<main>
+<div class="notice"><strong>Importante:</strong> cada clínica deverá preencher os três formulários. Os registros são separados por <strong>formulário + clínica + UF + mês + dia</strong>. Preencha os campos e clique em <strong>Salvar</strong> para gravar.</div>
+<div class="instructions"><strong>Orientações para preenchimento e escalonamento</strong><ul>
+<li>O Bate Mapa deverá ser realizado com <strong>24 horas úteis de antecedência</strong> da agenda/procedimento.</li>
+<li>Após o preenchimento do Bate Mapa, a <strong>entrega/separação dos materiais deverá ocorrer até às 10h</strong>.</li>
+<li>Em caso de dúvidas ou necessidade de alteração de materiais, realize o escalonamento para a coordenação responsável.</li>
+</ul></div>
+<div id="app"></div></main>
+
+<div class="overlay" id="loginGate">
+  <div class="loginbox">
+    <h2>Bate-Mapa Online</h2>
+    <p>Informe a UF e a senha de acesso fornecida para sua unidade.</p>
+    
+    <div id="userLoginBox">
+      <label>UF</label>
+      <select id="loginUF">
+        <option value="SP">SP</option>
+        <option value="CE">CE</option>
+        <option value="SC">SC</option>
+      </select>
+      <label>Senha de acesso</label>
+      <input id="loginPassword" type="password" onkeydown="if(event.key==='Enter') entrarUnidade()">
+      <div style="display:flex;gap:8px;margin-top:6px;">
+        <button id="loginBtn" class="primary" type="button" onclick="entrarUnidade()">Entrar</button>
+        <button id="adminModeBtn" type="button" onclick="alternarModoAdmin(true)">Acesso admin</button>
+      </div>
+    </div>
+
+    <div id="adminLoginBox" style="display:none">
+      <label>E-mail do administrador</label>
+      <input id="adminEmail" type="email" placeholder="admin@bate-mapa.local">
+      <label>Senha do administrador</label>
+      <input id="adminPassword" type="password" placeholder="BateMapa2026!" onkeydown="if(event.key==='Enter') entrarAdmin()">
+      <div style="display:flex;gap:8px;margin-top:6px;">
+        <button id="adminLoginBtn" class="primary" type="button" onclick="entrarAdmin()">Entrar como admin</button>
+        <button id="userModeBtn" type="button" onclick="alternarModoAdmin(false)">Voltar ao acesso da unidade</button>
+      </div>
+    </div>
+    
+    <div id="loginMsg" class="msg"></div>
+  </div>
+</div>
+
+<div class="overlay" id="exportGate" style="display:none"><div class="exportbox"><h2>Exportar Excel consolidado</h2>
+<label>Escopo</label><select id="exportScope" style="width:100%;margin:6px 0 12px"><option value="mesClinica">Clínica atual + todos os dias do mês</option><option value="clinicaTodos">Clínica atual + todos os meses</option><option value="mesTodas">Todas as unidades + todos os dias do mês</option><option value="tudo">Todas as unidades + todos os meses</option></select>
+<p style="font-size:12px">O relatório reúne os três Bate-Mapas e o histórico.</p><label>Senha de exportação</label><input id="exportPassword" type="password" style="width:100%;margin:6px 0 12px"><div id="exportMsg" class="msg"></div>
+<button id="exportGenerate" class="primary" type="button" onclick="gerarExportacaoExcel()">Gerar Excel</button> <button id="exportCancel" type="button" onclick="document.getElementById('exportGate').style.display='none'">Cancelar</button></div></div>
+
+<script>
+var SUPABASE_URL = "https://oxkjzzktwgprmzxugtqy.supabase.co";
+var SUPABASE_PUBLISHABLE_KEY = "sb_publishable_wozv78FaVqc9uibQF0Yhfg_tXA7yfJU";
+var EXPORT_PASSWORD = "BateMapa2026!";
+
+var SENHAS_PERMITIDAS = {
+  SP: ["batemapasp2026!", "clinicassp2026"],
+  CE: ["batemapace2026!", "clinicasce2026"],
+  SC: ["batemapasc2026!", "clinicassc2026"]
+};
+
+var CLINICAS_PILOTO = [
+  { clinic: "Clínica América", uf: "SC" },
+  { clinic: "Clínica das Marias", uf: "CE" },
+  { clinic: "Clínica Barão de Studart", uf: "CE" },
+  { clinic: "Clínica Interlagos", uf: "SP" },
+  { clinic: "Clínica Barra Funda", uf: "SP" },
+  { clinic: "Clínica Santo Antônio", uf: "SP" }
+];
+
+var PROCEDIMENTOS_SMALL = ["Cauterização química","Cantoplastia","Exerese","Curetagem","Infiltração","Biópsia","Desbridamento","Expansão mamária","Eletrocauterização","Drenagem de Abscesso","HPV","Crioterapia"];
+var PROCEDIMENTOS_DIU = ["DIU Cobre","DIU Prata","DIU Cobre + Prata","Biópsia de colo uterino","DIU Hormonal Mirena","DIU Hormonal Kyleena","Implanon","Cauterização"];
+
+var DATA = {"pequenos":{"Setembro":[{"day":0,"label":"DIA 01 – 01/09/2026 – Terça-feira"},{"day":1,"label":"DIA 02 – 02/09/2026 – Quarta-feira"},{"day":2,"label":"DIA 03 – 03/09/2026 – Quinta-feira"},{"day":3,"label":"DIA 04 – 04/09/2026 – Sexta-feira"},{"day":4,"label":"DIA 05 – 05/09/2026 – Sábado"},{"day":5,"label":"DIA 07 – 07/09/2026 – Segunda-feira"},{"day":6,"label":"DIA 08 – 08/09/2026 – Terça-feira"},{"day":7,"label":"DIA 09 – 09/09/2026 – Quarta-feira"},{"day":8,"label":"DIA 10 – 10/09/2026 – Quinta-feira"},{"day":9,"label":"DIA 11 – 11/09/2026 – Sexta-feira"},{"day":10,"label":"DIA 12 – 12/09/2026 – Sábado"},{"day":11,"label":"DIA 14 – 14/09/2026 – Segunda-feira"},{"day":12,"label":"DIA 15 – 15/09/2026 – Terça-feira"},{"day":13,"label":"DIA 16 – 16/09/2026 – Quarta-feira"},{"day":14,"label":"DIA 17 – 17/09/2026 – Quinta-feira"},{"day":15,"label":"DIA 18– 18/09/2026 – Sexta-feira"},{"day":16,"label":"DIA 19 – 19/09/2026 – Sábado"},{"day":17,"label":"DIA 21 – 21/09/2026 – Segunda-feira"},{"day":18,"label":"DIA 22 – 22/09/2026 – Terça-feira"},{"day":19,"label":"DIA 23 – 23/09/2026 – Quarta-feira"},{"day":20,"label":"DIA 24 – 24/09/2026 – Quinta-feira"},{"day":21,"label":"DIA 25 – 25/09/2026 – Sexta-feira"},{"day":22,"label":"DIA 26 – 26/09/2026 – Sábado"},{"day":23,"label":"DIA 28 – 28/09/2026 – Segunda-feira"},{"day":24,"label":"DIA 29 – 29/09/2026 – Terça-feira"},{"day":25,"label":"DIA 30 – 30/09/2026 – Quarta-feira"}],"Outubro":[{"day":0,"label":"DIA 01 – 01/10/2026 – Quinta-feira"},{"day":1,"label":"DIA 02 – 02/10/2026 – Sexta-feira"},{"day":2,"label":"DIA 03 – 03/10/2026 – Sábado"},{"day":3,"label":"DIA 05 – 05/10/2026 – Segunda-feira"},{"day":4,"label":"DIA 06 – 06/10/2026 – Terça-feira"},{"day":5,"label":"DIA 07 – 07/10/2026 – Quarta-feira"},{"day":6,"label":"DIA 08 – 08/10/2026 – Quinta-feira"},{"day":7,"label":"DIA 09 – 09/10/2026 – Sexta-feira"},{"day":8,"label":"DIA 10 – 10/10/2026 – Sábado"},{"day":9,"label":"DIA 12 – 12/10/2026 – Segunda-feira"},{"day":10,"label":"DIA 13 – 13/10/2026 – Terça-feira"},{"day":11,"label":"DIA 14 – 14/10/2026 – Quarta-feira"},{"day":12,"label":"DIA 15 – 15/10/2026 – Quinta-feira"},{"day":13,"label":"DIA 16 – 16/10/2026 – Sexta-feira"},{"day":14,"label":"DIA 17 – 17/10/2026 – Sábado"},{"day":15,"label":"DIA 19– 19/10/2026 –Segunda - feira"},{"day":16,"label":"DIA 20 – 20/10/2026 – Terça-feira"},{"day":17,"label":"DIA 21 – 21/10/2026 – Quarta-feira"},{"day":18,"label":"DIA 23 – 23/10/2026 – Sexta-feira"},{"day":19,"label":"DIA 24 – 24/10/2026 – Sábado"},{"day":20,"label":"DIA 26 – 26/10/2026 – Segunda-feira"},{"day":21,"label":"DIA 27 – 27/10/2026 – Terça-feira"},{"day":22,"label":"DIA 28 – 28/10/2026 –Quarta-feira"},{"day":23,"label":"DIA 29– 29/09/2026 – Quinta-feira"},{"day":24,"label":"DIA 30 – 30/09/2026 – Sexta-feira"},{"day":25,"label":"DIA 31 – 31/09/2026 – Sábado-feira"}],"Novembro":[{"day":0,"label":"DIA 02 – 02/11/2026 – Segunda-feira"},{"day":1,"label":"DIA 03– 03/11/2026 – Terça-feira"},{"day":2,"label":"DIA 04 – 04/11/2026 – Quarta-feira"},{"day":3,"label":"DIA 05 – 05/11/2026 – Quinta-feira"},{"day":4,"label":"DIA 06 – 06/11/2026 – Sexta-feira"},{"day":5,"label":"DIA 07 – 07/11/2026 – Sábado"},{"day":6,"label":"DIA 09 – 09/11/2026 – Segunda-feira"},{"day":7,"label":"DIA 10 – 10/11/2026 – Terça-feira"},{"day":8,"label":"DIA 11 – 11/11/2026 – Quarta-feira"},{"day":9,"label":"DIA 12 – 12/11/2026 – Quinta-feira"},{"day":10,"label":"DIA 13 – 13/11/2026 – Sexta-feira"},{"day":11,"label":"DIA 14 – 14/09/2026 – Sábado"},{"day":12,"label":"DIA 16 – 16/11/2026 – Segunda-feira"},{"day":13,"label":"DIA 17 – 17/11/2026 – Terça-feira"},{"day":14,"label":"DIA 18– 18/11/2026 – Quarta-feira"},{"day":15,"label":"DIA 19 – 19/11/2026 – Quinta-feira"},{"day":16,"label":"DIA 20 – 20/11/2026 – Sexta-feira"},{"day":17,"label":"DIA 21 – 21/11/2026 – Sábado"},{"day":18,"label":"DIA 23 – 23/11/2026 – Segundaa-feira"},{"day":19,"label":"DIA 24 – 24/11/2026 – Terça-feira"},{"day":20,"label":"DIA 25 – 25/11/2026 – Quarta-feira"},{"day":21,"label":"DIA 26 – 26/11/2026 – Quinta-feira"},{"day":22,"label":"DIA 27 – 27/11/2026 – Sexta-feira"},{"day":23,"label":"DIA 28 – 28/11/2026 – Sábado"},{"day":24,"label":"DIA 30 – 30/11/2026 – Segunda-feira"}],"Dezembro":[{"day":0,"label":"DIA 01 – 01/12/2026 – Terça-feira"},{"day":1,"label":"DIA 02 – 02/12/2026 – Quarta-feira"},{"day":2,"label":"DIA 03 – 03/12/2026 – Quinta-feira"},{"day":3,"label":"DIA 04 – 04/12/2026 – Sexta-feira"},{"day":4,"label":"DIA 05 – 05/12/2026 – Sábado"},{"day":5,"label":"DIA 07 – 07/12/2026 – Segunda-feira"},{"day":6,"label":"DIA 08 – 08/12/2026 – Terça-feira"},{"day":7,"label":"DIA 09 – 09/12/2026 – Quarta-feira"},{"day":8,"label":"DIA 10 – 10/12/2026 – Quinta-feira"},{"day":9,"label":"DIA 11 – 11/12/2026 – Sexta-feira"},{"day":10,"label":"DIA 12 – 12/12/2026 – Sábado"},{"day":11,"label":"DIA 14 – 14/12/2026 – Segunda-feira"},{"day":12,"label":"DIA 15 – 15/12/2026 – Terça-feira"},{"day":13,"label":"DIA 16 – 16/12/2026 – Quarta-feira"},{"day":14,"label":"DIA 17 – 17/12/2026 – Quinta-feira"},{"day":15,"label":"DIA 18– 18/12/2026 – Sexta-feira"},{"day":16,"label":"DIA 19 – 19/12/2026 – Sábado"},{"day":17,"label":"DIA 21 – 21/12/2026 – Segunda-feira"},{"day":18,"label":"DIA 22 – 22/012/2026 – Terça-feira"},{"day":19,"label":"DIA 23 – 23/12/2026 – Quarta-feira"},{"day":20,"label":"DIA 24 – 24/12/2026 – Quinta-feira"},{"day":21,"label":"DIA 25 – 25/12/2026 – Sexta-feira"},{"day":22,"label":"DIA 26 – 26/12/2026 – Sábado"},{"day":23,"label":"DIA 28 – 28/12/2026 – Segunda-feira"},{"day":24,"label":"DIA 29 – 29/12/2026 – Terça-feira"},{"day":25,"label":"DIA 30 – 30/12/2026 – Quarta-feira"},{"day":26,"label":"DIA 31 – 31/12/2026 – Quinta-feira"}]},"infiltracao":{"Setembro":[{"day":1,"label":"DIA 01 – 01/09/2026 – Terça-feira"},{"day":2,"label":"DIA 02 – 02/09/2026 – Quarta-feira"},{"day":3,"label":"DIA 03 – 03/09/2026 – Quinta-feira"},{"day":4,"label":"DIA 04 – 04/09/2026 – Sexta-feira"},{"day":5,"label":"DIA 05 – 05/09/2026 – Sábado"},{"day":7,"label":"DIA 07 – 07/09/2026 – Segunda-feira"},{"day":8,"label":"DIA 08 – 08/09/2026 – Terça-feira"},{"day":9,"label":"DIA 09 – 09/09/2026 – Quarta-feira"},{"day":10,"label":"DIA 10 – 10/09/2026 – Quinta-feira"},{"day":11,"label":"DIA 11 – 11/09/2026 – Sexta-feira"},{"day":12,"label":"DIA 12 – 12/09/2026 – Sábado"},{"day":14,"label":"DIA 14 – 14/09/2026 – Segunda-feira"},{"day":15,"label":"DIA 15 – 15/09/2026 – Terça-feira"},{"day":16,"label":"DIA 16 – 16/09/2026 – Quarta-feira"},{"day":17,"label":"DIA 17 – 17/09/2026 – Quinta-feira"},{"day":18,"label":"DIA 18 – 18/09/2026 – Sexta-feira"},{"day":19,"label":"DIA 19 – 19/09/2026 – Sábado"},{"day":21,"label":"DIA 21 – 21/09/2026 – Segunda-feira"},{"day":22,"label":"DIA 22 – 22/09/2026 – Terça-feira"},{"day":23,"label":"DIA 23 – 23/09/2026 – Quarta-feira"},{"day":24,"label":"DIA 24 – 24/09/2026 – Quinta-feira"},{"day":25,"label":"DIA 25 – 25/09/2026 – Sexta-feira"},{"day":26,"label":"DIA 26 – 26/09/2026 – Sábado"},{"day":28,"label":"DIA 28 – 28/09/2026 – Segunda-feira"},{"day":29,"label":"DIA 29 – 29/09/2026 – Terça-feira"},{"day":30,"label":"DIA 30 – 30/09/2026 – Quarta-feira"}],"Outubro":[{"day":1,"label":"DIA 01 – 01/10/2026 – Quinta-feira"},{"day":2,"label":"DIA 02 – 02/10/2026 – Sexta-feira"},{"day":3,"label":"DIA 03 – 03/10/2026 – Sábado"},{"day":5,"label":"DIA 05 – 05/10/2026 – Segunda-feira"},{"day":6,"label":"DIA 06 – 06/10/2026 – Terça-feira"},{"day":7,"label":"DIA 07 – 07/10/2026 – Quarta-feira"},{"day":8,"label":"DIA 08 – 08/10/2026 – Quinta-feira"},{"day":9,"label":"DIA 09 – 09/10/2026 – Sexta-feira"},{"day":10,"label":"DIA 10 – 10/10/2026 – Sábado"},{"day":12,"label":"DIA 12 – 12/10/2026 – Segunda-feira"},{"day":13,"label":"DIA 13 – 13/10/2026 – Terça-feira"},{"day":14,"label":"DIA 14 – 14/10/2026 – Quarta-feira"},{"day":15,"label":"DIA 15 – 15/10/2026 – Quinta-feira"},{"day":16,"label":"DIA 16 – 16/10/2026 – Sexta-feira"},{"day":17,"label":"DIA 17 – 17/10/2026 – Sábado"},{"day":19,"label":"DIA 19 – 19/10/2026 – Segunda-feira"},{"day":20,"label":"DIA 20 – 20/10/2026 – Terça-feira"},{"day":21,"label":"DIA 21 – 21/10/2026 – Quarta-feira"},{"day":22,"label":"DIA 22 – 22/10/2026 – Quinta-feira"},{"day":23,"label":"DIA 23 – 23/10/2026 – Sexta-feira"},{"day":24,"label":"DIA 24 – 24/10/2026 – Sábado"},{"day":26,"label":"DIA 26 – 26/10/2026 – Segunda-feira"},{"day":27,"label":"DIA 27 – 27/10/2026 – Terça-feira"},{"day":28,"label":"DIA 28 – 28/10/2026 – Quarta-feira"},{"day":29,"label":"DIA 29 – 29/10/2026 – Quinta-feira"},{"day":30,"label":"DIA 30 – 30/10/2026 – Sexta-feira"},{"day":31,"label":"DIA 31 – 31/10/2026 – Sábado"}],"Novembro":[{"day":2,"label":"DIA 02 – 02/11/2026 – Segunda-feira"},{"day":3,"label":"DIA 03 – 03/11/2026 – Terça-feira"},{"day":4,"label":"DIA 04 – 04/11/2026 – Quarta-feira"},{"day":5,"label":"DIA 05 – 05/11/2026 – Quinta-feira"},{"day":6,"label":"DIA 06 – 06/11/2026 – Sexta-feira"},{"day":7,"label":"DIA 07 – 07/11/2026 – Sábado"},{"day":9,"label":"DIA 09 – 09/11/2026 – Segunda-feira"},{"day":10,"label":"DIA 10 – 10/11/2026 – Terça-feira"},{"day":11,"label":"DIA 11 – 11/11/2026 – Quarta-feira"},{"day":12,"label":"DIA 12 – 12/11/2026 – Quinta-feira"},{"day":13,"label":"DIA 13 – 13/11/2026 – Sexta-feira"},{"day":14,"label":"DIA 14 – 14/11/2026 – Sábado"},{"day":16,"label":"DIA 16 – 16/11/2026 – Segunda-feira"},{"day":17,"label":"DIA 17 – 17/11/2026 – Terça-feira"},{"day":18,"label":"DIA 18 – 18/11/2026 – Quarta-feira"},{"day":19,"label":"DIA 19 – 19/11/2026 – Quinta-feira"},{"day":20,"label":"DIA 20 – 20/11/2026 – Sexta-feira"},{"day":21,"label":"DIA 21 – 21/11/2026 – Sábado"},{"day":23,"label":"DIA 23 – 23/11/2026 – Segunda-feira"},{"day":24,"label":"DIA 24 – 24/11/2026 – Terça-feira"},{"day":25,"label":"DIA 25 – 25/11/2026 – Quarta-feira"},{"day":26,"label":"DIA 26 – 26/11/2026 – Quinta-feira"},{"day":27,"label":"DIA 27 – 27/11/2026 – Sexta-feira"},{"day":28,"label":"DIA 28 – 28/11/2026 – Sábado"},{"day":30,"label":"DIA 30 – 30/11/2026 – Segunda-feira"}],"Dezembro":[{"day":1,"label":"DIA 01 – 01/12/2026 – Terça-feira"},{"day":2,"label":"DIA 02 – 02/12/2026 – Quarta-feira"},{"day":3,"label":"DIA 03 – 03/12/2026 – Quinta-feira"},{"day":4,"label":"DIA 04 – 04/12/2026 – Sexta-feira"},{"day":5,"label":"DIA 05 – 05/12/2026 – Sábado"},{"day":7,"label":"DIA 07 – 07/12/2026 – Segunda-feira"},{"day":8,"label":"DIA 08 – 08/12/2026 – Terça-feira"},{"day":9,"label":"DIA 09 – 09/12/2026 – Quarta-feira"},{"day":10,"label":"DIA 10 – 10/12/2026 – Quinta-feira"},{"day":11,"label":"DIA 11 – 11/12/2026 – Sexta-feira"},{"day":12,"label":"DIA 12 – 12/12/2026 – Sábado"},{"day":14,"label":"DIA 14 – 14/12/2026 – Segunda-feira"},{"day":15,"label":"DIA 15 – 15/12/2026 – Terça-feira"},{"day":16,"label":"DIA 16 – 16/12/2026 – Quarta-feira"},{"day":17,"label":"DIA 17 – 17/12/2026 – Quinta-feira"},{"day":18,"label":"DIA 18 – 18/12/2026 – Sexta-feira"},{"day":19,"label":"DIA 19 – 19/12/2026 – Sábado"},{"day":21,"label":"DIA 21 – 21/12/2026 – Segunda-feira"},{"day":22,"label":"DIA 22 – 22/12/2026 – Terça-feira"},{"day":23,"label":"DIA 23 – 23/12/2026 – Quarta-feira"},{"day":24,"label":"DIA 24 – 24/12/2026 – Quinta-feira"},{"day":25,"label":"DIA 25 – 25/12/2026 – Sexta-feira"},{"day":26,"label":"DIA 26 – 26/12/2026 – Sábado"},{"day":28,"label":"DIA 28 – 28/12/2026 – Segunda-feira"},{"day":29,"label":"DIA 29 – 29/12/2026 – Terça-feira"},{"day":30,"label":"DIA 30 – 30/12/2026 – Quarta-feira"},{"day":31,"label":"DIA 31 – 31/12/2026 – Quinta-feira"}]},"diu":{"Setembro":[{"day":1,"label":"DIA 01 – 01/09/2026 – Terça-feira"},{"day":2,"label":"DIA 02 – 02/09/2026 – Quarta-feira"},{"day":3,"label":"DIA 03 – 03/09/2026 – Quinta-feira"},{"day":4,"label":"DIA 04 – 04/09/2026 – Sexta-feira"},{"day":5,"label":"DIA 05 – 05/09/2026 – Sábado"},{"day":7,"label":"DIA 07 – 07/09/2026 – Segunda-feira"},{"day":8,"label":"DIA 08 – 08/09/2026 – Terça-feira"},{"day":9,"label":"DIA 09 – 09/09/2026 – Quarta-feira"},{"day":10,"label":"DIA 10 – 10/09/2026 – Quinta-feira"},{"day":11,"label":"DIA 11 – 11/09/2026 – Sexta-feira"},{"day":12,"label":"DIA 12 – 12/11/2026 – Sábado"},{"day":14,"label":"DIA 14 – 14/09/2026 – Segunda-feira"},{"day":15,"label":"DIA 15 – 15/09/2026 – Terça-feira"},{"day":16,"label":"DIA 16 – 16/09/2026 – Quarta-feira"},{"day":17,"label":"DIA 17 – 17/09/2026 – Quinta-feira"},{"day":18,"label":"DIA 18 – 18/09/2026 – Sexta-feira"},{"day":19,"label":"DIA 19 – 19/09/2026 – Sábado"},{"day":21,"label":"DIA 21 – 21/09/2026 – Segunda-feira"},{"day":22,"label":"DIA 22 – 22/09/2026 – Terça-feira"},{"day":23,"label":"DIA 23 – 23/09/2026 – Quarta-feira"},{"day":24,"label":"DIA 24 – 24/09/2026 – Quinta-feira"},{"day":25,"label":"DIA 25 – 25/09/2026 – Sexta-feira"},{"day":26,"label":"DIA 26 – 26/09/2026 – Sábado"},{"day":28,"label":"DIA 28 – 28/09/2026 – Segunda-feira"},{"day":29,"label":"DIA 29 – 29/09/2026 – Terça-feira"},{"day":30,"label":"DIA 30 – 30/09/2026 – Quarta-feira"}],"Outubro":[{"day":1,"label":"DIA 01 – 01/10/2026 – Quinta-feira"},{"day":2,"label":"DIA 02 – 02/10/2026 – Sexta-feira"},{"day":3,"label":"DIA 03 – 03/10/2026 – Sábado"},{"day":5,"label":"DIA 05 – 05/10/2026 – Segunda-feira"},{"day":6,"label":"DIA 06 – 06/10/2026 – Terça-feira"},{"day":7,"label":"DIA 07 – 07/10/2026 – Quarta-feira"},{"day":8,"label":"DIA 08 – 08/10/2026 – Quinta-feira"},{"day":9,"label":"DIA 09 – 09/10/2026 – Sexta-feira"},{"day":10,"label":"DIA 10 – 10/10/2026 – Sábado"},{"day":12,"label":"DIA 12 – 12/10/2026 – Segunda-feira"},{"day":13,"label":"DIA 13 – 13/10/2026 – Terça-feira"},{"day":14,"label":"DIA 14 – 14/10/2026 – Quarta-feira"},{"day":15,"label":"DIA 15 – 15/10/2026 – Quinta-feira"},{"day":16,"label":"DIA 16 – 16/10/2026 – Sexta-feira"},{"day":17,"label":"DIA 17 – 17/10/2026 – Sábado"},{"day":19,"label":"DIA 19 – 19/10/2026 – Segunda-feira"},{"day":20,"label":"DIA 20 – 20/10/2026 – Terça-feira"},{"day":21,"label":"DIA 21 – 21/10/2026 – Quarta-feira"},{"day":22,"label":"DIA 22 – 22/10/2026 – Quinta-feira"},{"day":23,"label":"DIA 23 – 23/10/2026 – Sexta-feira"},{"day":24,"label":"DIA 24 – 24/10/2026 – Sábado"},{"day":26,"label":"DIA 26 – 26/10/2026 – Segunda-feira"},{"day":27,"label":"DIA 27 – 27/10/2026 – Terça-feira"},{"day":28,"label":"DIA 28 – 28/10/2026 – Quarta-feira"},{"day":29,"label":"DIA 29 – 29/10/2026 – Quinta-feira"},{"day":30,"label":"DIA 30 – 30/10/2026 – Sexta-feira"},{"day":31,"label":"DIA 31 – 31/10/2026 – Sábado"}],"Novembro":[{"day":2,"label":"DIA 02 – 02/11/2026 – Segunda-feira"},{"day":3,"label":"DIA 03 – 03/11/2026 – Terça-feira"},{"day":4,"label":"DIA 04 – 04/11/2026 – Quarta-feira"},{"day":5,"label":"DIA 05 – 05/11/2026 – Quinta-feira"},{"day":6,"label":"DIA 06 – 06/11/2026 – Sexta-feira"},{"day":7,"label":"DIA 07 – 07/11/2026 – Sábado"},{"day":9,"label":"DIA 09 – 09/11/2026 – Segunda-feira"},{"day":10,"label":"DIA 10 – 10/11/2026 – Terça-feira"},{"day":11,"label":"DIA 11 – 11/11/2026 – Quarta-feira"},{"day":12,"label":"DIA 12 – 12/11/2026 – Quinta-feira"},{"day":13,"label":"DIA 13 – 13/11/2026 – Sexta-feira"},{"day":14,"label":"DIA 14 – 14/11/2026 – Sábado"},{"day":16,"label":"DIA 16 – 16/11/2026 – Segunda-feira"},{"day":17,"label":"DIA 17 – 17/11/2026 – Terça-feira"},{"day":18,"label":"DIA 18 – 18/11/2026 – Quarta-feira"},{"day":19,"label":"DIA 19 – 19/11/2026 – Quinta-feira"},{"day":20,"label":"DIA 20 – 20/11/2026 – Sexta-feira"},{"day":21,"label":"DIA 21 – 21/11/2026 – Sábado"},{"day":23,"label":"DIA 23 – 23/11/2026 – Segunda-feira"},{"day":24,"label":"DIA 24 – 24/11/2026 – Terça-feira"},{"day":25,"label":"DIA 25 – 25/11/2026 – Quarta-feira"},{"day":26,"label":"DIA 26 – 26/11/2026 – Quinta-feira"},{"day":27,"label":"DIA 27 – 27/11/2026 – Sexta-feira"},{"day":28,"label":"DIA 28 – 28/11/2026 – Sábado"},{"day":30,"label":"DIA 30 – 30/11/2026 – Segunda-feira"}],"Dezembro":[{"day":1,"label":"DIA 01 – 01/12/2026 – Terça-feira"},{"day":2,"label":"DIA 02 – 02/12/2026 – Quarta-feira"},{"day":3,"label":"DIA 03 – 03/12/2026 – Quinta-feira"},{"day":4,"label":"DIA 04 – 04/12/2026 – Sexta-feira"},{"day":5,"label":"DIA 05 – 05/12/2026 – Sábado"},{"day":7,"label":"DIA 07 – 07/12/2026 – Segunda-feira"},{"day":8,"label":"DIA 08 – 08/12/2026 – Terça-feira"},{"day":9,"label":"DIA 09 – 09/12/2026 – Quarta-feira"},{"day":10,"label":"DIA 10 – 10/12/2026 – Quinta-feira"},{"day":11,"label":"DIA 11 – 11/12/2026 – Sexta-feira"},{"day":12,"label":"DIA 12 – 12/12/2026 – Sábado"},{"day":14,"label":"DIA 14 – 14/12/2026 – Segunda-feira"},{"day":15,"label":"DIA 15 – 15/12/2026 – Terça-feira"},{"day":16,"label":"DIA 16 – 16/12/2026 – Quarta-feira"},{"day":17,"label":"DIA 17 – 17/12/2026 – Quinta-feira"},{"day":18,"label":"DIA 18 – 18/12/2026 – Sexta-feira"},{"day":19,"label":"DIA 19 – 19/12/2026 – Sábado"},{"day":21,"label":"DIA 21 – 21/12/2026 – Segunda-feira"},{"day":22,"label":"DIA 22 – 22/12/2026 – Terça-feira"},{"day":23,"label":"DIA 23 – 23/12/2026 – Quarta-feira"},{"day":24,"label":"DIA 24 – 24/12/2026 – Quinta-feira"},{"day":25,"label":"DIA 25 – 25/12/2026 – Sexta-feira"},{"day":26,"label":"DIA 26 – 26/12/2026 – Sábado"},{"day":28,"label":"DIA 28 – 28/12/2026 – Segunda-feira"},{"day":29,"label":"DIA 29 – 29/12/2026 – Terça-feira"},{"day":30,"label":"DIA 30 – 30/12/2026 – Quarta-feira"},{"day":31,"label":"DIA 31 – 31/12/2026 – Quinta-feira"}]}};
+var FORM_LABELS = {
+  pequenos: "Bate-Mapa — Pequenos Procedimentos Ambulatoriais",
+  infiltracao: "Bate-Mapa — Infiltração e Punção",
+  diu: "Bate-Mapa — DIU / Implanon"
+};
+
+var state = { formType: "pequenos", month: "Setembro", dayIndex: 0, clinic: "", uf: "SP" };
+var sb = null, session = null, profile = null, clinics = [];
+var currentRecord = null, activeContext = null, loading = false, lastSavedSnapshot = "";
+
+var $ = function(id) { return document.getElementById(id); };
+var esc = function(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function(m) { return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]; }); };
+var todayISO = function() { return new Date().toISOString().slice(0, 10); };
+var selected = function(v, x) { return v === x ? "checked" : ""; };
+var days = function() { return (DATA[state.formType] && DATA[state.formType][state.month]) || []; };
+var currentDayObj = function() { return days()[state.dayIndex] || days()[0] || { day: 1, label: "DIA 01" }; };
+
+function blankRecord() {
+  return {
+    form_type: state.formType, clinica: state.clinic, uf: state.uf, mes: state.month, dia: currentDayObj().day || 0,
+    dataLabel: currentDayObj().label || "", dataPreenchimento: todayISO(), responsavel: "",
+    agendas: [{ medico: "", especialidade: "", horaInicio: "", horaFim: "", confAgenda: "" }],
+    proc: {}, outros: "", patients: [{}],
+    hpvAgendado: "",
+    hpvPatients: [{ nome: "", nascimento: "", dataProc: "", hora: "", obs: "", ultimo: "" }],
+    participants: [{}], equip: "", insumos: "", hc: "", problema: "", lidocaCom: "", lidocaSem: "", especificar: "",
+    infInfiltracao: "", infPuncao: "", infLidocaSem: "", infQuantidadeAgenda: "", infObservacao: "",
+    diuOutros: "", diuHPV: "", diuUltimo: "", diuObservacao: ""
+  };
+}
+
+function normalize(row) {
+  var d = (row && row.data) ? row.data : {};
+  var ags = d.agendas;
+  if (!ags || !Array.isArray(ags) || !ags.length) {
+    if (d.medico || d.especialidade || d.horaInicio || d.horaEntrada) {
+      ags = [{
+        medico: d.medico || "",
+        especialidade: d.especialidade || "",
+        horaInicio: d.horaInicio || d.horaEntrada || "",
+        horaFim: d.horaFim || d.horaSaida || "",
+        confAgenda: d.confAgenda || ""
+      }];
+    } else {
+      ags = [{ medico: "", especialidade: "", horaInicio: "", horaFim: "", confAgenda: "" }];
+    }
+  }
+
+  var hpvP = d.hpvPatients;
+  if (!hpvP || !Array.isArray(hpvP) || !hpvP.length) {
+    hpvP = [{ nome: d.hpvNome || "", nascimento: d.hpvNascimento || "", dataProc: d.hpvDataProc || "", hora: d.hpvHora || "", obs: d.hpvObs || "", ultimo: d.hpvUltimo || "" }];
+  }
+
+  return {
+    ...blankRecord(), ...d,
+    form_type: (row && row.form_type) || d.form_type || "pequenos",
+    clinica: (row && row.clinic) || d.clinica || "",
+    uf: (row && row.uf) || d.uf || "",
+    mes: (row && row.month) || d.mes || state.month,
+    dia: Number((row && row.day != null) ? row.day : (d.dia || 0)),
+    dataLabel: (row && row.date_label) || d.dataLabel || "",
+    dataPreenchimento: (row && row.fill_date) || d.dataPreenchimento || todayISO(),
+    responsavel: (row && row.responsible) || d.responsavel || "",
+    agendas: ags,
+    hpvAgendado: d.hpvAgendado || d.diuHPV || "",
+    hpvPatients: hpvP
+  };
+}
+
+function status(t) { var e = $("status"); if (e) e.textContent = t; }
+
+function renderAgenda(r) {
+  var arr = (r.agendas && r.agendas.length) ? r.agendas : [{}];
+  var html = '<div class="section-title">2. AGENDA DE PROCEDIMENTO</div>';
+  html += arr.map(function(a, i) {
+    return '<div class="agenda-card">' +
+      '<div class="agenda-head">' +
+        '<span>Médico / Agenda ' + (i + 1) + '</span>' +
+        (i ? '<button type="button" class="small-btn remove-btn" onclick="removeAgenda(' + i + ')">Remover</button>' : '') +
+      '</div>' +
+      '<div class="agenda-grid">' +
+        '<div class="field"><label>Nome do médico</label><input data-agenda="' + i + '" data-k="medico" value="' + esc(a.medico) + '"></div>' +
+        '<div class="field"><label>Especialidade</label><input data-agenda="' + i + '" data-k="especialidade" value="' + esc(a.especialidade) + '"></div>' +
+        '<div class="field"><label>Horário início</label><input type="time" data-agenda="' + i + '" data-k="horaInicio" value="' + esc(a.horaInicio) + '"></div>' +
+        '<div class="field"><label>Horário final</label><input type="time" data-agenda="' + i + '" data-k="horaFim" value="' + esc(a.horaFim) + '"></div>' +
+      '</div>' +
+      '<div class="radio-line" style="margin-top:8px;">' +
+        '<strong>Realizado conferência da agenda?</strong>' +
+        '<label><input type="radio" name="confAgenda_' + i + '" value="Sim" ' + selected(a.confAgenda, "Sim") + '> Sim</label>' +
+        '<label><input type="radio" name="confAgenda_' + i + '" value="Não" ' + selected(a.confAgenda, "Não") + '> Não</label>' +
+      '</div>' +
+    '</div>';
+  }).join("");
+  html += '<div class="repeat-actions"><button type="button" class="small-btn" onclick="addAgenda()">+ Adicionar outro médico / agenda</button></div>';
+  return html;
+}
+
+function patientCard(p, i, type) {
+  var isLatex = p.latex === "Sim";
+  var title = type === "diu" ? "Paciente alérgico(a) a látex / beneficiária" : "Paciente alérgico(a) a látex";
+  var details = isLatex ? (
+    '<div class="patient-grid">' +
+      '<div class="field"><label>' + (type === "diu" ? "Nome da beneficiária" : "Nome do paciente") + '</label><input data-p="' + i + '" data-k="nome" value="' + esc(p.nome) + '"></div>' +
+      '<div class="field"><label>Data de nascimento</label><input type="date" data-p="' + i + '" data-k="nascimento" value="' + esc(p.nascimento) + '"></div>' +
+      '<div class="field"><label>Data do procedimento</label><input type="date" data-p="' + i + '" data-k="dataProc" value="' + esc(p.dataProc) + '"></div>' +
+      '<div class="field"><label>Horário do procedimento</label><input type="time" data-p="' + i + '" data-k="hora" value="' + esc(p.hora) + '"></div>' +
+      '<div class="field"><label>Observação</label><input data-p="' + i + '" data-k="obs" value="' + esc(p.obs) + '"></div>' +
+    '</div>' +
+    '<div class="latex-alert"><strong>Paciente alérgico(a) a látex identificado.</strong> Manter a sinalização e priorizar no 1º horário da sala.</div>' +
+    (type === "pequenos" ? '<div class="radio-line"><strong>Confirmação do primeiro horário:</strong><label><input type="radio" name="primeiro_' + i + '" value="Sim" ' + selected(p.primeiro, "Sim") + '> Sim</label><label><input type="radio" name="primeiro_' + i + '" value="Não" ' + selected(p.primeiro, "Não") + '> Não</label></div>' : '') +
+    (type === "infiltracao" ? '<div class="radio-line"><strong>Primeiro horário?</strong><label><input type="radio" name="primeiro_' + i + '" value="Sim" ' + selected(p.primeiro, "Sim") + '> Sim</label><label><input type="radio" name="primeiro_' + i + '" value="Não" ' + selected(p.primeiro, "Não") + '> Não</label></div><div class="radio-line"><strong>Necessita de remanejamento?</strong><label><input type="radio" name="remanejamento_' + i + '" value="Sim" ' + selected(p.remanejamento, "Sim") + '> Sim</label><label><input type="radio" name="remanejamento_' + i + '" value="Não" ' + selected(p.remanejamento, "Não") + '> Não</label></div>' : '')
+  ) : '<div class="latex-hidden">Preencha nome e dados somente quando <strong>Alergia a látex = Sim</strong>.</div>';
+
+  return '<div class="patient"><div class="patient-head"><span>' + title + ' ' + (i + 1) + '</span>' + (i ? '<button type="button" class="small-btn remove-btn" onclick="removePatient(' + i + ')">Remover</button>' : '') + '</div>' +
+  '<div class="radio-line latex-question"><strong>Paciente é alérgico(a) a látex?</strong><label><input type="radio" name="latex_' + i + '" value="Sim" ' + selected(p.latex, "Sim") + '> Sim</label><label><input type="radio" name="latex_' + i + '" value="Não" ' + selected(p.latex, "Não") + '> Não</label></div>' +
+  details + '</div>';
+}
+
+function renderHPV(r) {
+  var isHpv = r.hpvAgendado === "Sim";
+  var arr = (r.hpvPatients && r.hpvPatients.length) ? r.hpvPatients : [{}];
+  
+  var html = '<div class="section-title">4. HPV / AGENDAMENTO</div>' +
+  '<div class="row full">' +
+    '<div class="cell options">' +
+      '<strong>HPV agendado?</strong>' +
+      '<label><input type="radio" name="hpvAgendado" value="Sim" ' + selected(r.hpvAgendado, "Sim") + '> Sim</label>' +
+      '<label><input type="radio" name="hpvAgendado" value="Não" ' + selected(r.hpvAgendado, "Não") + '> Não</label>' +
+    '</div>' +
+  '</div>';
+
+  if (!isHpv) {
+    html += '<div class="latex-hidden" style="margin: 8px 10px;">Preencha nome, data de nascimento e horário somente quando <strong>HPV agendado = Sim</strong>.</div>';
+    return html;
+  }
+
+  html += arr.map(function(p, i) {
+    return '<div class="patient" style="margin: 6px 10px; border: 1px solid #d8b4fe; border-radius: 8px; background: #faf5ff;">' +
+      '<div class="patient-head">' +
+        '<span>Paciente com HPV ' + (i + 1) + '</span>' +
+        (i ? '<button type="button" class="small-btn remove-btn" onclick="removeHPVPatient(' + i + ')">Remover</button>' : '') +
+      '</div>' +
+      '<div class="patient-grid">' +
+        '<div class="field"><label>Nome do paciente / beneficiária</label><input data-hpv="' + i + '" data-k="nome" value="' + esc(p.nome) + '"></div>' +
+        '<div class="field"><label>Data de nascimento</label><input type="date" data-hpv="' + i + '" data-k="nascimento" value="' + esc(p.nascimento) + '"></div>' +
+        '<div class="field"><label>Data do procedimento</label><input type="date" data-hpv="' + i + '" data-k="dataProc" value="' + esc(p.dataProc) + '"></div>' +
+        '<div class="field"><label>Horário do procedimento</label><input type="time" data-hpv="' + i + '" data-k="hora" value="' + esc(p.hora) + '"></div>' +
+        '<div class="field"><label>Observação</label><input data-hpv="' + i + '" data-k="obs" value="' + esc(p.obs) + '"></div>' +
+      '</div>' +
+      '<div class="radio-line" style="margin-top: 8px;">' +
+        '<strong>Agendado no último horário?</strong>' +
+        '<label><input type="radio" name="hpvUltimo_' + i + '" value="Sim" ' + selected(p.ultimo, "Sim") + '> Sim</label>' +
+        '<label><input type="radio" name="hpvUltimo_' + i + '" value="Não" ' + selected(p.ultimo, "Não") + '> Não</label>' +
+        '<span style="font-size:11px;color:#6b21a8;margin-left:10px;">(Se negativo: <strong>NECESSITA REMANEJAR</strong>)</span>' +
+      '</div>' +
+      '<div class="latex-alert" style="background:#f3e8ff;border-color:#d8b4fe;color:#581c87;margin-top:8px;">' +
+        '<strong>Paciente com HPV identificado.</strong> Agendar prioritariamente no último horário da sala cirúrgica para realização da desinfecção terminal.' +
+      '</div>' +
+    '</div>';
+  }).join("");
+
+  html += '<div class="repeat-actions"><button type="button" class="small-btn" onclick="addHPVPatient()">+ Adicionar outro paciente com HPV</button></div>';
+  return html;
+}
+
+function renderPequenos(r) {
+  var s = '<div class="section-title">1. PROCEDIMENTOS PROGRAMADOS – QUANTIDADE</div><div class="proc-grid">' +
+    PROCEDIMENTOS_SMALL.map(function(x, i) {
+      return '<div class="proc"><label>' + esc(x) + '</label><input type="number" min="0" data-proc="' + i + '" value="' + esc((r.proc && r.proc[i]) || "") + '"></div>';
+    }).join("") +
+    '</div><div class="row full"><div class="cell"><strong>Outros</strong><input data-main="outros" value="' + esc(r.outros) + '"></div></div>';
+  s += renderAgenda(r);
+  s += '<div class="section-title">3. PACIENTES ALÉRGICOS A LÁTEX / AGENDAMENTO</div>' +
+    (r.patients && r.patients.length ? r.patients : [{}]).map(function(x, i) { return patientCard(x, i, "pequenos"); }).join("") +
+    '<div class="repeat-actions"><button type="button" class="small-btn" onclick="addPatient()">+ Adicionar outro paciente</button></div>';
+  s += renderHPV(r);
+  s += '<div class="section-title">5. EQUIPAMENTOS, INSTRUMENTAIS, INSUMOS E HC</div>' +
+    '<div class="triple"><div class="cell options"><strong>Equipamentos</strong><label><input type="radio" name="equip" value="Sim" ' + selected(r.equip, "Sim") + '> Sim</label><label><input type="radio" name="equip" value="Não" ' + selected(r.equip, "Não") + '> Não</label></div><div class="cell options"><strong>Insumos</strong><label><input type="radio" name="insumos" value="Sim" ' + selected(r.insumos, "Sim") + '> Sim</label><label><input type="radio" name="insumos" value="Não" ' + selected(r.insumos, "Não") + '> Não</label></div><div class="cell options"><strong>HC</strong><label><input type="radio" name="hc" value="Sim" ' + selected(r.hc, "Sim") + '> Sim</label><label><input type="radio" name="hc" value="Não" ' + selected(r.hc, "Não") + '> Não</label></div></div>' +
+    '<div class="triple"><div class="cell options"><strong>Problema estrutural / identificado</strong><label><input type="radio" name="problema" value="Sim" ' + selected(r.problema, "Sim") + '> Sim</label><label><input type="radio" name="problema" value="Não" ' + selected(r.problema, "Não") + '> Não</label></div><div class="cell options"><strong>Lidocaína c/ vaso</strong><label><input type="radio" name="lidocaCom" value="Sim" ' + selected(r.lidocaCom, "Sim") + '> Sim</label><label><input type="radio" name="lidocaCom" value="Não" ' + selected(r.lidocaCom, "Não") + '> Não</label></div><div class="cell options"><strong>Lidocaína s/ vaso</strong><label><input type="radio" name="lidocaSem" value="Sim" ' + selected(r.lidocaSem, "Sim") + '> Sim</label><label><input type="radio" name="lidocaSem" value="Não" ' + selected(r.lidocaSem, "Não") + '> Não</label></div></div>' +
+    '<div class="row full"><div class="cell"><strong>Especificar</strong><textarea data-main="especificar">' + esc(r.especificar) + '</textarea></div></div>';
+  return s;
+}
+
+function renderInfiltracao(r) {
+  var s = '<div class="section-title">1. PROCEDIMENTOS PROGRAMADOS – QUANTIDADE</div>' +
+    '<div class="proc-grid" style="grid-template-columns: 1fr 1fr 1.5fr;">' +
+      '<div class="proc"><label>Infiltração</label><input type="number" min="0" data-main="infInfiltracao" value="' + esc(r.infInfiltracao) + '"></div>' +
+      '<div class="proc"><label>Punção</label><input type="number" min="0" data-main="infPuncao" value="' + esc(r.infPuncao) + '"></div>' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-right:0;border-bottom:1px solid #bfc6cf;min-height:40px;background:#fff;">' +
+        '<label style="font-size:12px;font-weight:bold;color:#17202a;">Lidocaína sem vasoconstritor</label>' +
+        '<div style="display:flex;gap:14px;align-items:center;">' +
+          '<label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="infLidocaSem" value="Sim" ' + selected(r.infLidocaSem, "Sim") + '> Sim</label>' +
+          '<label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="infLidocaSem" value="Não" ' + selected(r.infLidocaSem, "Não") + '> Não</label>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="row" style="grid-template-columns: 1.5fr 1fr;">' +
+      '<div class="cell">' +
+        '<strong style="font-size:12px;margin-bottom:6px;display:block;">Quantidade necessária para a agenda</strong>' +
+        '<input data-main="infQuantidadeAgenda" value="' + esc(r.infQuantidadeAgenda) + '" style="max-width:220px;">' +
+      '</div>' +
+      '<div class="cell options" style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;">' +
+        '<strong style="font-size:12px;margin-bottom:0;">Insumos disponíveis</strong>' +
+        '<div style="display:flex;gap:14px;align-items:center;">' +
+          '<label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="infInsumos" value="Sim" ' + selected(r.insumos, "Sim") + '> Sim</label>' +
+          '<label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="infInsumos" value="Não" ' + selected(r.insumos, "Não") + '> Não</label>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  s += renderAgenda(r);
+  s += '<div class="section-title">3. PACIENTES ALÉRGICOS A LÁTEX / AGENDAMENTO</div>' +
+    (r.patients && r.patients.length ? r.patients : [{}]).map(function(x, i) { return patientCard(x, i, "infiltracao"); }).join("") +
+    '<div class="repeat-actions"><button type="button" class="small-btn" onclick="addPatient()">+ Adicionar outro paciente</button></div>';
+  s += renderHPV(r);
+  s += '<div class="row full"><div class="cell"><strong>Observação do dia</strong><textarea data-main="infObservacao">' + esc(r.infObservacao) + '</textarea></div></div>';
+  return s;
+}
+
+function renderDIU(r) {
+  var s = '<div class="section-title">1. PROCEDIMENTOS AGENDADOS – QUANTIDADE</div><div class="proc-grid">' +
+    PROCEDIMENTOS_DIU.map(function(x, i) {
+      return '<div class="proc"><label>' + esc(x) + '</label><input type="number" min="0" data-proc="' + i + '" value="' + esc((r.proc && r.proc[i]) || "") + '"></div>';
+    }).join("") +
+    '</div><div class="row"><div class="cell"><strong>Outros</strong><input data-main="diuOutros" value="' + esc(r.diuOutros) + '"></div><div class="cell options" style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;"><strong style="font-size:12px;margin-bottom:0;">Insumos disponíveis</strong><div style="display:flex;gap:14px;align-items:center;"><label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="diuInsumos" value="Sim" ' + selected(r.insumos, "Sim") + '> Sim</label><label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="diuInsumos" value="Não" ' + selected(r.insumos, "Não") + '> Não</label></div></div></div>';
+  s += renderAgenda(r);
+  s += '<div class="section-title">3. PACIENTES ALÉRGICOS A LÁTEX / AGENDAMENTO</div>' +
+    (r.patients && r.patients.length ? r.patients : [{}]).map(function(x, i) { return patientCard(x, i, "diu"); }).join("") +
+    '<div class="repeat-actions"><button type="button" class="small-btn" onclick="addPatient()">+ Adicionar outro paciente</button></div>';
+  s += renderHPV(r);
+  s += '<div class="row full"><div class="cell"><strong>Observação</strong><textarea data-main="diuObservacao">' + esc(r.diuObservacao) + '</textarea></div></div>';
+  return s;
+}
+
+function renderParticipants(r) {
+  var cargos = ["Administrativo", "Farmácia", "Engenharia Clínica", "Higienização", "Enfermagem"];
+  var numSec = state.formType === "infiltracao" ? "5" : "6";
+  return '<div class="section-title">' + numSec + '. PROFISSIONAIS / PARTICIPANTES</div>' +
+  '<table class="participants"><thead><tr><th>NOME</th><th>CARGO</th>' + (state.formType === "infiltracao" ? '<th>DATA</th><th>HORA</th>' : '') + '<th>AÇÃO</th></tr></thead><tbody>' +
+  (r.participants && r.participants.length ? r.participants : [{}]).map(function(x, i) {
+    return '<tr><td><input data-part="' + i + '" data-k="nome" value="' + esc(x.nome) + '"></td><td><select data-part="' + i + '" data-k="cargo"><option value="">Selecione...</option>' +
+    cargos.map(function(c) { return '<option value="' + esc(c) + '" ' + (x.cargo === c ? "selected" : "") + '>' + esc(c) + '</option>'; }).join("") +
+    '</select></td>' + (state.formType === "infiltracao" ? '<td><input type="date" data-part="' + i + '" data-k="data" value="' + esc(x.data) + '"></td><td><input type="time" data-part="' + i + '" data-k="hora" value="' + esc(x.hora) + '"></td>' : '') +
+    '<td>' + (i ? '<button type="button" class="small-btn remove-btn" onclick="removeParticipant(' + i + ')">Remover</button>' : '') + '</td></tr>';
+  }).join("") + '</tbody></table>' +
+  '<div class="repeat-actions"><button type="button" class="small-btn" onclick="addParticipant()">+ Adicionar participante</button></div>';
+}
+
+function render() {
+  var r = currentRecord || blankRecord(), d = currentDayObj();
+  var p = '<section class="paper">' +
+    '<div class="title">' + esc(FORM_LABELS[state.formType].toUpperCase()) + ' | ' + esc(state.month.toUpperCase()) + '/2026</div>' +
+    '<div class="dayhead">' + esc(d.label || "") + '</div>' +
+    '<div class="row">' +
+      '<div class="cell"><strong>Clínica / Unidade</strong><span>' + esc(r.clinica || "—") + '</span></div>' +
+      '<div class="cell"><strong>UF</strong><span>' + esc(r.uf || state.uf || "—") + '</span></div>' +
+    '</div>' +
+    '<div class="row">' +
+      '<div class="cell"><strong>Data do preenchimento</strong><input type="date" data-main="dataPreenchimento" value="' + esc(r.dataPreenchimento || todayISO()) + '"></div>' +
+      '<div class="cell"><strong>Responsável</strong><input data-main="responsavel" value="' + esc(r.responsavel) + '"></div>' +
+    '</div>';
+  if (state.formType === "pequenos") p += renderPequenos(r);
+  if (state.formType === "infiltracao") p += renderInfiltracao(r);
+  if (state.formType === "diu") p += renderDIU(r);
+  p += renderParticipants(r);
+  p += '<div class="audit"><span><strong>Alterações registradas:</strong> <span id="changeCount">—</span></span><span><strong>Última alteração:</strong> <span id="lastChanged">—</span></span><span>Versões anteriores preservadas no histórico.</span></div>' +
+    '<div class="footer"><span>' + esc(r.clinica || "—") + ' | ' + esc(r.uf || state.uf || "—") + ' | ' + esc(FORM_LABELS[state.formType]) + '</span><span id="status">Pronto</span></div></section>';
+  $("app").innerHTML = p;
+  bindForm();
+}
+
+function collectForm() {
+  var r = { ...currentRecord, form_type: state.formType, clinica: $("clinic").value, uf: state.uf || $("uf").value, mes: state.month, dia: currentDayObj().day, dataLabel: currentDayObj().label };
+  document.querySelectorAll("[data-main]").forEach(function(e) { r[e.dataset.main] = e.value; });
+  r.proc = { ...(r.proc || {}) };
+  document.querySelectorAll("[data-proc]").forEach(function(e) { r.proc[e.dataset.proc] = e.value; });
+
+  // Agendas
+  r.agendas = (r.agendas || []).map(function(x) { return { ...x }; });
+  if (!r.agendas.length) r.agendas = [{}];
+  document.querySelectorAll("[data-agenda][data-k]").forEach(function(e) {
+    var i = Number(e.dataset.agenda);
+    r.agendas[i] = { ...(r.agendas[i] || {}), [e.dataset.k]: e.value };
+  });
+
+  document.querySelectorAll('input[name^="confAgenda_"]').forEach(function(e) {
+    if (e.checked) {
+      var i = Number(e.name.split("_").pop());
+      r.agendas[i] = { ...(r.agendas[i] || {}), confAgenda: e.value };
+    }
+  });
+
+  // HPV status
+  var hpvRadio = document.querySelector('input[name="hpvAgendado"]:checked');
+  r.hpvAgendado = hpvRadio ? hpvRadio.value : "";
+  r.diuHPV = r.hpvAgendado;
+
+  // HPV Patients
+  r.hpvPatients = (r.hpvPatients || []).map(function(x) { return { ...x }; });
+  if (!r.hpvPatients.length) r.hpvPatients = [{}];
+  document.querySelectorAll("[data-hpv][data-k]").forEach(function(e) {
+    var i = Number(e.dataset.hpv);
+    r.hpvPatients[i] = { ...(r.hpvPatients[i] || {}), [e.dataset.k]: e.value };
+  });
+
+  document.querySelectorAll('input[name^="hpvUltimo_"]').forEach(function(e) {
+    if (e.checked) {
+      var i = Number(e.name.split("_").pop());
+      r.hpvPatients[i] = { ...(r.hpvPatients[i] || {}), ultimo: e.value };
+    }
+  });
+
+  // Radios gerais
+  ["equip","insumos","hc","problema","lidocaCom","lidocaSem","infLidocaSem","infInsumos","diuInsumos","diuUltimo"].forEach(function(n) {
+    var e = document.querySelector('input[name="' + n + '"]:checked');
+    if (e) {
+      if (n === "infInsumos" || n === "diuInsumos") r.insumos = e.value;
+      else r[n] = e.value;
+    }
+  });
+
+  // Pacientes Látex
+  r.patients = (r.patients || []).map(function(x) { return { ...x }; });
+  if (!r.patients.length) r.patients = [{}];
+  document.querySelectorAll("[data-p][data-k]").forEach(function(e) {
+    var i = Number(e.dataset.p);
+    r.patients[i] = { ...(r.patients[i] || {}), [e.dataset.k]: e.value };
+  });
+
+  ["latex","primeiro","remanejamento"].forEach(function(t) {
+    document.querySelectorAll('input[name^="' + t + '_"]').forEach(function(e) {
+      if (e.checked) {
+        var i = Number(e.name.split("_").pop());
+        r.patients[i] = { ...(r.patients[i] || {}), [t]: e.value };
+      }
+    });
+  });
+
+  r.patients = r.patients.map(function(p) { return p.latex === "Sim" ? p : { ...p, nome: "", nascimento: "", dataProc: "", hora: "", obs: "" }; });
+  r.participants = [];
+  document.querySelectorAll("[data-part]").forEach(function(e) {
+    var i = Number(e.dataset.part);
+    r.participants[i] = { ...(r.participants[i] || {}), [e.dataset.k]: e.value };
+  });
+  if (!r.participants.length) r.participants = [{}];
+  return r;
+}
+
+function snapshot(r) { return JSON.stringify(r); }
+
+function bindForm() {
+  document.querySelectorAll("[data-main],[data-proc],[data-p][data-k],[data-part],[data-agenda],[data-hpv]").forEach(function(e) {
+    e.addEventListener("input", function() { status("Alterações pendentes de salvamento"); });
+  });
+  document.querySelectorAll("select[data-part]").forEach(function(e) {
+    e.addEventListener("change", function() { status("Alterações pendentes de salvamento"); });
+  });
+  document.querySelectorAll("input[type=radio]").forEach(function(e) {
+    e.addEventListener("change", function() {
+      if (e.name.startsWith("latex_") || e.name === "hpvAgendado") {
+        currentRecord = collectForm();
+        render();
+      }
+      status("Alterações pendentes de salvamento");
+    });
+  });
+}
+
+function addAgenda() {
+  currentRecord = collectForm();
+  currentRecord.agendas = [...(currentRecord.agendas || []), { medico: "", especialidade: "", horaInicio: "", horaFim: "", confAgenda: "" }];
+  render();
+  status("Alterações pendentes de salvamento");
+}
+
+function removeAgenda(i) {
+  currentRecord = collectForm();
+  if ((currentRecord.agendas || []).length <= 1) return;
+  currentRecord.agendas.splice(i, 1);
+  render();
+  status("Alterações pendentes de salvamento");
+}
+
+function addHPVPatient() {
+  currentRecord = collectForm();
+  currentRecord.hpvPatients = [...(currentRecord.hpvPatients || []), { nome: "", nascimento: "", dataProc: "", hora: "", obs: "", ultimo: "" }];
+  render();
+  status("Alterações pendentes de salvamento");
+}
+
+function removeHPVPatient(i) {
+  currentRecord = collectForm();
+  if ((currentRecord.hpvPatients || []).length <= 1) return;
+  currentRecord.hpvPatients.splice(i, 1);
+  render();
+  status("Alterações pendentes de salvamento");
+}
+
+function addPatient() { currentRecord = collectForm(); currentRecord.patients = [...(currentRecord.patients || []), {}]; render(); status("Alterações pendentes de salvamento"); }
+function removePatient(i) { currentRecord = collectForm(); if ((currentRecord.patients || []).length <= 1) return; currentRecord.patients.splice(i, 1); render(); status("Alterações pendentes de salvamento"); }
+function addParticipant() { currentRecord = collectForm(); currentRecord.participants = [...(currentRecord.participants || []), {}]; render(); status("Alterações pendentes de salvamento"); }
+function removeParticipant(i) { currentRecord = collectForm(); if ((currentRecord.participants || []).length <= 1) return; currentRecord.participants.splice(i, 1); render(); status("Alterações pendentes de salvamento"); }
+
+function novoRegisto() {
+  currentRecord = blankRecord();
+  lastSavedSnapshot = snapshot(currentRecord);
+  render();
+  status("Novo registro — pronto para preencher");
+}
+
+function imprimirDia() { window.print(); }
+
+function alternarModoAdmin(mostrarAdmin) {
+  var userBox = $("userLoginBox");
+  var adminBox = $("adminLoginBox");
+  var msg = $("loginMsg");
+  if (userBox) userBox.style.display = mostrarAdmin ? "none" : "block";
+  if (adminBox) adminBox.style.display = mostrarAdmin ? "block" : "none";
+  if (msg) msg.textContent = "";
+}
+
+function entrarUnidade() {
+  var uf = $("loginUF").value;
+  var p = ($("loginPassword").value || "").trim().toLowerCase();
+  var msg = $("loginMsg");
+
+  if (!p) {
+    msg.textContent = "Informe a senha de acesso.";
+    return;
+  }
+
+  var validList = SENHAS_PERMITIDAS[uf] || [];
+  var isMatch = validList.indexOf(p) !== -1;
+
+  if (!isMatch) {
+    msg.textContent = "Senha incorreta para a UF selecionada (" + uf + ").";
+    return;
+  }
+
+  session = {
+    user: {
+      id: "00000000-0000-0000-0000-00000000000" + (uf === "SP" ? "1" : (uf === "CE" ? "2" : "3")),
+      email: "acesso." + uf.toLowerCase() + "@bate-mapa.local"
+    }
+  };
+
+  state.uf = uf;
+  profile = { role: "unidade" };
+
+  $("loginGate").style.display = "none";
+  document.body.classList.remove("locked");
+  $("onlineStatus").textContent = "online — unidade (" + uf + ")";
+  $("uf").value = uf;
+
+  carregarClinicas().then(function() {
+    renderSelectors();
+    carregarRegisto();
+  });
+}
+
+function entrarAdmin() {
+  var email = ($("adminEmail").value || "").trim();
+  var p = ($("adminPassword").value || "").trim();
+  var msg = $("loginMsg");
+
+  if (!p) {
+    msg.textContent = "Informe a senha do administrador.";
+    return;
+  }
+
+  if (p === EXPORT_PASSWORD) {
+    profile = { role: "admin" };
+    session = { user: { id: "00000000-0000-0000-0000-000000000000", email: email || "admin@bate-mapa.local" } };
+
+    $("loginGate").style.display = "none";
+    document.body.classList.remove("locked");
+    $("onlineStatus").textContent = "online — admin";
+    $("uf").disabled = false;
+
+    carregarClinicas().then(function() {
+      renderSelectors();
+      carregarRegisto();
+    });
+    return;
+  }
+
+  msg.textContent = "Senha de administrador incorreta.";
+}
+
+function terminarSessao() {
+  if (sb && sb.auth) {
+    try { sb.auth.signOut(); } catch(e){}
+  }
+  session = null;
+  profile = null;
+  state.clinic = "";
+  currentRecord = null;
+  if ($("loginPassword")) $("loginPassword").value = "";
+  if ($("adminPassword")) $("adminPassword").value = "";
+  $("loginGate").style.display = "flex";
+  document.body.classList.add("locked");
+  $("onlineStatus").textContent = "offline";
+}
+
+function carregarClinicas() {
+  return new Promise(function(resolve) {
+    var list = CLINICAS_PILOTO;
+    if (profile && profile.role !== "admin" && state.uf) {
+      list = list.filter(function(x) { return x.uf === state.uf; });
+    }
+
+    clinics = list;
+    $("clinic").innerHTML = '<option value="">Selecione a clínica / unidade</option>' + clinics.map(function(x) {
+      return '<option value="' + esc(x.clinic) + '" data-uf="' + esc(x.uf) + '">' + esc(x.clinic) + '</option>';
+    }).join("");
+
+    if (clinics.length) {
+      state.clinic = clinics[0].clinic;
+      $("clinic").value = state.clinic;
+      $("uf").value = state.uf;
+    }
+    resolve();
+  });
+}
+
+function renderSelectors() {
+  var ms = $("month");
+  ms.innerHTML = Object.keys(DATA[state.formType]).map(function(m) { return '<option value="' + esc(m) + '">' + esc(m) + '</option>'; }).join("");
+  ms.value = state.month;
+  preencherDias();
+}
+
+function preencherDias(preferido) {
+  var arr = days(), ds = $("day");
+  ds.innerHTML = arr.map(function(x, i) { return '<option value="' + i + '">' + esc(x.label) + '</option>'; }).join("");
+  var idx = preferido == null ? state.dayIndex : arr.findIndex(function(x) { return x.day === Number(preferido); });
+  if (idx < 0) idx = 0;
+  state.dayIndex = idx;
+  ds.value = String(idx);
+}
+
+function carregarRegisto() {
+  if (!$("clinic").value) return;
+  loading = true;
+  status("Carregando...");
+  var clinic = $("clinic").value, uf = state.uf || $("uf").value, day = currentDayObj().day;
+
+  if (!sb) {
+    currentRecord = blankRecord();
+    render();
+    loading = false;
+    status("Pronto");
+    return;
+  }
+
+  sb.from("bate_mapa_registros").select("*")
+    .eq("clinic", clinic).eq("uf", uf).eq("month", state.month).eq("day", String(day)).eq("form_type", state.formType)
+    .maybeSingle()
+    .then(function(res) {
+      var data = res.data;
+      currentRecord = data ? normalize(data) : blankRecord();
+      lastSavedSnapshot = snapshot(currentRecord);
+      activeContext = { clinic: clinic, uf: uf, month: state.month, day: day, formType: state.formType };
+      render();
+      loading = false;
+      carregarHistoricoMeta();
+      status(data ? "✓ Carregado do banco" : "Novo registro — pronto para preencher");
+    })
+    .catch(function(err) {
+      console.warn("Leitura remota:", err);
+      currentRecord = blankRecord();
+      render();
+      loading = false;
+      status("Novo registro — pronto para preencher");
+    });
+}
+
+function carregarHistoricoMeta() {
+  if (!$("clinic").value || !sb) return;
+  var d = currentDayObj();
+  sb.from("bate_mapa_historico").select("changed_at", { count: "exact" })
+    .eq("clinic", $("clinic").value).eq("uf", state.uf || $("uf").value).eq("month", state.month).eq("day", String(d.day)).eq("form_type", state.formType)
+    .order("changed_at", { ascending: false }).limit(1)
+    .then(function(res) {
+      if ($("changeCount")) $("changeCount").textContent = String(res.count || 0);
+      if ($("lastChanged")) $("lastChanged").textContent = res.data && res.data[0] && res.data[0].changed_at ? new Date(res.data[0].changed_at).toLocaleString("pt-BR") : "—";
+    });
+}
+
+function mudarPara(target) {
+  var oldCtx = activeContext ? { ...activeContext } : null;
+  if (oldCtx && oldCtx.clinic) {
+    var curSnapshot = snapshot(collectForm());
+    if (curSnapshot !== lastSavedSnapshot) {
+      if (confirm("Existem alterações não salvas neste formulário. Deseja salvar antes de trocar?")) {
+        guardarContexto(oldCtx);
+      }
+    }
+  }
+  state.formType = target.formType || state.formType;
+  state.month = target.month || state.month;
+  state.clinic = target.clinic || state.clinic;
+  state.uf = target.uf || state.uf;
+  renderSelectors();
+  preencherDias(target.day != null ? target.day : currentDayObj().day);
+  $("clinic").value = state.clinic;
+  $("uf").value = state.uf;
+  carregarRegisto();
+}
+
+function guardarManual() {
+  if (!$("clinic").value || loading) {
+    alert("Selecione a clínica antes de salvar.");
+    return;
+  }
+  if (!confirm("Tem certeza que deseja salvar as informações deste Bate-Mapa?")) {
+    return;
+  }
+  guardarOnline();
+}
+
+function guardarOnline() {
+  if (!$("clinic").value || loading) return;
+  var r = collectForm();
+  if (snapshot(r) === lastSavedSnapshot) {
+    status("✓ Sem alterações pendentes");
+    alert("Nenhuma nova alteração detectada.");
+    return;
+  }
+
+  var uid = (session && session.user && session.user.id) || "00000000-0000-0000-0000-000000000001";
+  var row = {
+    clinic: $("clinic").value,
+    uf: state.uf || $("uf").value,
+    month: state.month,
+    day: String(currentDayObj().day),
+    form_type: state.formType,
+    date_label: r.dataLabel,
+    fill_date: r.dataPreenchimento || null,
+    responsible: r.responsavel || "",
+    data: r,
+    user_id: uid
+  };
+
+  status("Salvando...");
+  sb.from("bate_mapa_registros").upsert(row, { onConflict: "form_type,clinic,uf,month,day" }).select("id,updated_at").single()
+    .then(function(res) {
+      if (res.error) {
+        // Fallback defensivo removendo user_id caso a tabela do Supabase tenha bloqueio
+        delete row.user_id;
+        sb.from("bate_mapa_registros").upsert(row, { onConflict: "form_type,clinic,uf,month,day" }).select("id,updated_at").single()
+          .then(function(res2) {
+            if (res2.error) {
+              status("Erro ao salvar: " + res2.error.message);
+              alert("Erro ao salvar no banco: " + res2.error.message);
+            } else {
+              concluirSalvamento(r);
+            }
+          });
+      } else {
+        concluirSalvamento(r);
+      }
+    })
+    .catch(function(err) {
+      status("Erro: " + err.message);
+      alert("Erro na gravação: " + err.message);
+    });
+}
+
+function concluirSalvamento(r) {
+  lastSavedSnapshot = snapshot(r);
+  activeContext = { clinic: $("clinic").value, uf: state.uf || $("uf").value, month: state.month, day: currentDayObj().day, formType: state.formType };
+  carregarHistoricoMeta();
+  status("✓ Salvo no banco");
+  alert("✓ Bate-Mapa salvo com sucesso!");
+}
+
+function guardarContexto(ctx) {
+  var r = collectForm();
+  r.form_type = ctx.formType; r.clinica = ctx.clinic; r.uf = ctx.uf; r.mes = ctx.month;
+  var uid = (session && session.user && session.user.id) || "00000000-0000-0000-0000-000000000001";
+  var row = {
+    clinic: ctx.clinic, uf: ctx.uf, month: ctx.month, day: String(ctx.day),
+    form_type: ctx.formType, date_label: r.dataLabel, fill_date: r.dataPreenchimento || null,
+    responsible: r.responsavel || "", data: r, user_id: uid
+  };
+  sb.from("bate_mapa_registros").upsert(row, { onConflict: "form_type,clinic,uf,month,day" });
+}
+
+function limparRegisto() {
+  if (!confirm("Apagar o preenchimento salvo desta clínica, formulário e dia? O histórico permanecerá.")) return;
+  var d = currentDayObj();
+  sb.from("bate_mapa_registros").delete()
+    .eq("clinic", $("clinic").value).eq("uf", state.uf || $("uf").value).eq("month", state.month).eq("day", String(d.day)).eq("form_type", state.formType)
+    .then(function() {
+      novoRegisto();
+      carregarHistoricoMeta();
+      status("Registro apagado; histórico preservado");
+    });
+}
+
+function abrirExportacao() {
+  if (!profile || profile.role !== "admin") {
+    alert("A exportação consolidada é restrita ao administrador.");
+    return;
+  }
+  $("exportPassword").value = "";
+  $("exportMsg").textContent = "";
+  $("exportGate").style.display = "flex";
+}
+
+function gerarExportacaoExcel() {
+  if ($("exportPassword").value !== EXPORT_PASSWORD) {
+    $("exportMsg").textContent = "Senha incorreta.";
+    return;
+  }
+  $("exportMsg").textContent = "A gerar...";
+  sb.from("bate_mapa_registros").select("clinic,uf,month,day,form_type,date_label,fill_date,responsible,data,updated_at")
+    .order("clinic").order("form_type").order("month").order("day")
+    .then(function(res) {
+      if (res.error) {
+        $("exportMsg").textContent = res.error.message;
+        return;
+      }
+      var rows = (res.data || []).map(function(row) {
+        var r = normalize(row);
+        r.tipo = FORM_LABELS[r.form_type] || r.form_type;
+        return r;
+      });
+
+      var con = [["Tipo","Unidade","UF","Mês","Data","Médicos / Agendas","HPV Agendado","Outros","Insumos","HC","Equipamentos","Problema","Observação"]];
+      var agendasSheet = [["Tipo","Unidade","UF","Mês","Data","Médico","Especialidade","Horário Início","Horário Fim","Conferência da Agenda"]];
+      var hpvSheet = [["Tipo","Unidade","UF","Mês","Data","Nome Paciente HPV","Nascimento","Data Procedimento","Horário","Último Horário","Observação"]];
+
+      rows.forEach(function(x) {
+        var medicosStr = (x.agendas || []).map(function(a) {
+          return (a.medico || "Médico") + " (" + (a.especialidade || "-") + " | " + (a.horaInicio || "--:--") + " às " + (a.horaFim || "--:--") + " | Conf: " + (a.confAgenda || "N/A") + ")";
+        }).join(" ; ");
+
+        con.push([x.tipo, x.clinica, x.uf, x.mes, x.dataLabel, medicosStr, x.hpvAgendado || "Não", x.outros || x.diuOutros || "", x.insumos || "", x.hc || "", x.equip || "", x.problema || "", x.especificar || x.infObservacao || x.diuObservacao || ""]);
+
+        (x.agendas || []).forEach(function(a) {
+          agendasSheet.push([x.tipo, x.clinica, x.uf, x.mes, x.dataLabel, a.medico || "", a.especialidade || "", a.horaInicio || "", a.horaFim || "", a.confAgenda || ""]);
+        });
+
+        if (x.hpvAgendado === "Sim") {
+          (x.hpvPatients || []).forEach(function(hp) {
+            hpvSheet.push([x.tipo, x.clinica, x.uf, x.mes, x.dataLabel, hp.nome || "", hp.nascimento || "", hp.dataProc || "", hp.hora || "", hp.ultimo || "", hp.obs || ""]);
+          });
+        }
+      });
+
+      var wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(con), "Consolidado");
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(agendasSheet), "Agendas_Medicas");
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(hpvSheet), "Pacientes_HPV");
+      XLSX.writeFile(wb, "Bate-Mapa_Piloto_2026.xlsx");
+      $("exportGate").style.display = "none";
+      status("✓ Excel exportado");
+    });
+}
+
+function inicializar() {
+  try {
+    sb = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+    });
+  } catch(e) {
+    console.warn("Supabase local:", e);
+  }
+
+  $("formType").addEventListener("change", function() {
+    mudarPara({ formType: $("formType").value, month: state.month, day: currentDayObj().day });
+  });
+  $("month").addEventListener("change", function() {
+    mudarPara({ month: $("month").value, day: 1 });
+  });
+  $("day").addEventListener("change", function() {
+    mudarPara({ day: days()[Number($("day").value)].day });
+  });
+  $("clinic").addEventListener("change", function() {
+    var o = $("clinic").selectedOptions[0];
+    mudarPara({ clinic: o ? o.value : "", uf: (o && o.dataset.uf) || state.uf });
+  });
+
+  renderSelectors();
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", inicializar);
+} else {
+  inicializar();
+}
+</script>
+</body>
+</html>
